@@ -220,14 +220,17 @@ git push -u origin main
 2. Click **Create a project → Connect to Git**
 3. Authorize Cloudflare to access your GitHub account
 4. Select your `doctorformassist` repository
-5. Configure the build:
+5. Configure the build settings **exactly** as below:
 
-   | Setting              | Value         |
-   |----------------------|---------------|
-   | Framework preset     | Vite          |
-   | Build command        | `npm run build` |
-   | Build output directory | `dist`      |
-   | Root directory       | `/`           |
+   | Setting                | Value           |
+   |------------------------|-----------------|
+   | Framework preset       | **Vite**        |
+   | Build command          | `npm run build` |
+   | Build output directory | `dist`          |
+   | Root directory         | `/`             |
+   | **Deploy command**     | *(leave blank)* |
+
+   > ⚠️ **Critical:** Make sure the **Deploy command** field is **empty**. If Cloudflare pre-fills it with `npx wrangler deploy`, delete it. That command deploys as a Worker — Pages deploys automatically from the `dist` folder.
 
 6. Click **Save and Deploy**
 

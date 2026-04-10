@@ -50,7 +50,7 @@
     "lint-staged": "^15.2.7",
     "prettier": "^3.3.2",
     "typescript": "^5.4.5",
-    "vite": "^5.2.13",
+    "vite": "^6.0.0",
     "vite-bundle-visualizer": "^1.0.1",
     "vitest": "^1.6.0"
   },
