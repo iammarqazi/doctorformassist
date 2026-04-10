@@ -43,9 +43,9 @@ export function PatientQueue({ patients, onRemove, totalPdfs }: Props) {
               <div className={styles.itemInfo}>
                 <span className={styles.patientName}>{patient.name}</span>
                 <div className={styles.testTags} role="list" aria-label={`Tests for ${patient.name}`}>
-                  {patient.tests.map((testId) => (
+                  {patient.tests.map((testId: string) => (
                     <span key={testId} className={styles.tag} role="listitem">
-                      {TEST_MAP[testId]?.shortLabel ?? testId}
+                      {TEST_MAP.get(testId as never)?.shortLabel ?? testId}
                     </span>
                   ))}
                 </div>

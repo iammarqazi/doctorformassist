@@ -1,5 +1,5 @@
 import type { TestId } from '@/types'
-import { TEST_MAP } from '@/constants/tests'
+import { TESTS, TEST_MAP } from '@/constants/tests'
 
 export interface PdfInput {
   date: string
@@ -83,7 +83,7 @@ export async function generateLabPdf(input: PdfInput): Promise<Uint8Array> {
   // Render all tests; highlight selected one
   const testTop = invTop + 9
   const lineH = 9
-  const allTests = Object.values(TEST_MAP)
+  const allTests = TESTS
 
   allTests.forEach((test, i) => {
     const y = testTop + i * lineH

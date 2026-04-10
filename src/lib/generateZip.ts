@@ -29,8 +29,8 @@ export async function generateZip(
         testId,
       })
 
-      const test = TEST_MAP[testId]
-      const filename = toFilename(patient.name, test.shortLabel)
+      const test = TEST_MAP.get(testId)
+      const filename = toFilename(patient.name, test?.shortLabel ?? testId)
       zip.file(filename, pdfBytes)
       fileCount++
     }

@@ -1,4 +1,4 @@
-import type { TestDefinition } from '@/types'
+import type { TestDefinition, TestId } from '@/types'
 
 export const TESTS: TestDefinition[] = [
   { id: 'CBC', label: 'CBC — Complete Blood Count', shortLabel: 'CBC' },
@@ -17,7 +17,4 @@ export const TESTS: TestDefinition[] = [
   { id: 'ABG', label: 'ABG — Arterial Blood Gas', shortLabel: 'ABG' },
 ]
 
-export const TEST_MAP = Object.fromEntries(TESTS.map((t) => [t.id, t])) as Record<
-  string,
-  TestDefinition
->
+export const TEST_MAP: Map<TestId, TestDefinition> = new Map(TESTS.map((t) => [t.id, t]))
