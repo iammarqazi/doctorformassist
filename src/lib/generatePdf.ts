@@ -1,5 +1,5 @@
 import type { TestId } from '@/types'
-import { TESTS, TEST_MAP } from '@/constants/tests'
+import { TESTS } from '@/constants/tests'
 
 export interface PdfInput {
   date: string
