@@ -1,0 +1,37 @@
+export type TestId =
+  | 'CBC'
+  | 'ESR'
+  | 'RFT_SE'
+  | 'S_ELECTROLYTES'
+  | 'DETAILED_LFT'
+  | 'LFT'
+  | 'CA_MG_PO4'
+  | 'TFT'
+  | 'RBS'
+  | 'SERUM_AMMONIA'
+  | 'LIPID_PROFILE'
+  | 'HBA1C'
+  | 'PT_INR'
+  | 'ABG'
+
+export interface TestDefinition {
+  id: TestId
+  label: string
+  shortLabel: string
+}
+
+export interface SessionData {
+  date: string
+  doctor: string
+}
+
+export interface PatientEntry {
+  id: string
+  name: string
+  tests: TestId[]
+}
+
+export interface FormValues {
+  patientName: string
+  tests: TestId[]
+}
