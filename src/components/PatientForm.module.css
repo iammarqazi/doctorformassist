@@ -25,8 +25,92 @@
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.charHint {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  font-weight: 400;
+  margin-left: 0.4rem;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.ageGenderRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
   margin-bottom: 1.25rem;
 }
+
+@media (max-width: 380px) {
+  .ageGenderRow { grid-template-columns: 1fr; }
+}
+
+.ageField,
+.genderField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.select {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  padding: 0.6rem 0.85rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
+  width: 100%;
+  cursor: pointer;
+}
+
+.select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.additionalField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1.25rem;
+}
+
+.optionalHint {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  font-weight: 400;
+  margin-left: 0.4rem;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.textarea {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  padding: 0.6rem 0.85rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
+  width: 100%;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.textarea::placeholder { color: var(--text-dim); }
 
 .label {
   font-size: 0.78rem;

@@ -22,16 +22,15 @@ export interface TestDefinition {
 
 export interface SessionData {
   date: string
-  doctor: string
+  unit: string
+  ward: string
 }
 
 export interface PatientEntry {
   id: string
   name: string
+  age: number
+  gender: 'Male' | 'Female'
   tests: TestId[]
-}
-
-export interface FormValues {
-  patientName: string
-  tests: TestId[]
+  additionalTests: string
 }

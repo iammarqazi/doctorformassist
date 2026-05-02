@@ -1,159 +1,97 @@
-import type { TestId } from '@/types'
-import { TESTS } from '@/constants/tests'
+import type { PatientEntry, SessionData } from '@/types'
+import { TEST_MAP } from '@/constants/tests'
 
-export interface PdfInput {
-  date: string
-  doctor: string
-  patientName: string
-  testId: TestId
+// Exact dimensions from CBC5.docx (twips → mm: 2835 twips = 50mm, 851 twips = 15mm)
+const PAGE_W = 50
+const PAGE_H = 15
+
+// Column layout matching DOCX 2-col structure (57 twip margins, 113 twip gap)
+// Left col: starts at 1mm | Right col: starts at 1 + 23 + 2 = 26mm
+const LEFT_X = 1
+const RIGHT_X = 26
+
+// Baseline Y positions for 3 rows of 10pt text on a 15mm page
+// Top margin: 43 twips ≈ 0.76mm; cap height at 10pt ≈ 2.5mm; line height ≈ 4.2mm
+const Y1 = 3.5   // row 1: date | [blank]
+const Y2 = 7.5   // row 2: patient name | ward/unit
+const Y3 = 11.5  // row 3: test acronym | age/gender
+
+const MAX_COL_W = 22  // mm — max width per column before auto-sizing kicks in
+const BASE_FONT = 10  // pt — matches DOCX sz val="20" (20 half-points = 10pt)
+const MIN_FONT = 6    // pt — minimum for long additional-test strings
+
+const formatDate = (d: string) => {
+  if (!d) return '—'
+  const [y, m, day] = d.split('-')
+  return `${day}-${m}-${y}`
 }
 
 /**
- * Generates a single lab requisition PDF as a Uint8Array.
- * Pure function — no side effects, fully unit-testable.
- * jsPDF is dynamically imported so it only loads when needed.
+ * Generates a single multi-page PDF (one page per patient × test combination).
+ * Page size 50mm × 15mm matches CBC5.docx exactly — 2 columns, 3 rows, 10pt bold.
+ * Patients appear in order; additional-tests text (if any) gets one extra page per patient.
  */
-export async function generateLabPdf(input: PdfInput): Promise<Uint8Array> {
+export async function generateLabPdf(session: SessionData, patients: PatientEntry[]): Promise<ArrayBuffer> {
   const { default: jsPDF } = await import('jspdf')
 
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a5' })
-  const W = 148 // A5 width mm
-  const margin = 16
+  const doc = new jsPDF({ unit: 'mm', format: [PAGE_W, PAGE_H] })
+  let firstPage = true
 
-  // ── Header bar ──────────────────────────────────────────────
-  doc.setFillColor(14, 90, 120)
-  doc.rect(0, 0, W, 22, 'F')
-
-  doc.setTextColor(255, 255, 255)
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(13)
-  doc.text('Doctor Form Assist', margin, 10)
-
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(7.5)
-  doc.text('Laboratory Investigation Requisition', margin, 16)
-
-  doc.setTextColor(255, 255, 255)
-  doc.setFontSize(7)
-  doc.text('www.doctorformassist.com', W - margin, 16, { align: 'right' })
-
-  // ── Patient details block ───────────────────────────────────
-  const detailTop = 30
-  doc.setDrawColor(220, 230, 235)
-  doc.setFillColor(245, 249, 252)
-  doc.roundedRect(margin, detailTop, W - margin * 2, 32, 2, 2, 'FD')
-
-  doc.setTextColor(80, 100, 110)
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(8)
-
-  const labelX = margin + 4
-  const valueX = margin + 30
-  const rowH = 8
-
-  const formatDate = (d: string) => {
-    if (!d) return '—'
-    const [y, m, day] = d.split('-')
-    return `${day}/${m}/${y}`
+  const fitAndDraw = (text: string, x: number, y: number, maxW: number) => {
+    let fs = BASE_FONT
+    doc.setFontSize(fs)
+    while (fs > MIN_FONT && doc.getTextWidth(text) > maxW) {
+      fs -= 0.5
+      doc.setFontSize(fs)
+    }
+    doc.text(text, x, y)
+    doc.setFontSize(BASE_FONT)
   }
 
-  doc.setFont('helvetica', 'bold')
-  doc.text('Date', labelX, detailTop + 9)
-  doc.text('Doctor', labelX, detailTop + 9 + rowH)
-  doc.text('Patient', labelX, detailTop + 9 + rowH * 2)
+  const drawSlip = (
+    col1row1: string,  // date
+    col1row2: string,  // patient name
+    col1row3: string,  // test acronym or additional-tests text
+    col2row2: string,  // ward/unit
+    col2row3: string,  // age/gender
+  ) => {
+    if (!firstPage) doc.addPage([PAGE_W, PAGE_H])
+    firstPage = false
 
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(30, 40, 50)
-  doc.text(`: ${formatDate(input.date)}`, valueX, detailTop + 9)
-  doc.text(`: Dr. ${input.doctor}`, valueX, detailTop + 9 + rowH)
-  doc.text(`: ${input.patientName}`, valueX, detailTop + 9 + rowH * 2)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(0, 0, 0)
+    doc.setFontSize(BASE_FONT)
 
-  // ── Investigation section ───────────────────────────────────
-  const invTop = detailTop + 38
+    // Row 1 — date only (right col blank, like the DOCX template)
+    doc.text(col1row1, LEFT_X, Y1)
 
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(9)
-  doc.setTextColor(14, 90, 120)
-  doc.text('INVESTIGATION REQUIRED', margin, invTop)
+    // Row 2 — name | ward/unit
+    doc.text(col1row2, LEFT_X, Y2)
+    doc.text(col2row2, RIGHT_X, Y2)
 
-  doc.setDrawColor(14, 90, 120)
-  doc.setLineWidth(0.4)
-  doc.line(margin, invTop + 2, W - margin, invTop + 2)
+    // Row 3 — test (auto-sized) | age/gender
+    fitAndDraw(col1row3, LEFT_X, Y3, MAX_COL_W)
+    doc.text(col2row3, RIGHT_X, Y3)
+  }
 
-  // Render all tests; highlight selected one
-  const testTop = invTop + 9
-  const lineH = 9
-  const allTests = TESTS
+  const dateStr = formatDate(session.date)
+  const wardUnit = `Ward ${session.ward}/ ${session.unit}`
 
-  allTests.forEach((test, i) => {
-    const y = testTop + i * lineH
-    const isSelected = test.id === input.testId
+  for (const patient of patients) {
+    const agGender = `${patient.age}/ ${patient.gender.toUpperCase()}`
+    const patName = patient.name.toUpperCase()
 
-    if (isSelected) {
-      doc.setFillColor(14, 90, 120)
-      doc.roundedRect(margin, y - 5.5, W - margin * 2, 7, 1, 1, 'F')
+    for (const testId of patient.tests) {
+      const testDef = TEST_MAP.get(testId)
+      const testLabel = testDef?.shortLabel ?? testId
+      drawSlip(dateStr, patName, testLabel, wardUnit, agGender)
     }
 
-    // Checkbox
-    const cbX = margin + 3
-    const cbY = y - 3.5
-    doc.setDrawColor(isSelected ? 255 : 160, isSelected ? 255 : 170, isSelected ? 255 : 175)
-    doc.setLineWidth(0.4)
-    doc.rect(cbX, cbY, 4, 4)
-
-    if (isSelected) {
-      // Draw checkmark
-      doc.setDrawColor(255, 255, 255)
-      doc.setLineWidth(0.7)
-      doc.line(cbX + 0.8, cbY + 2, cbX + 1.7, cbY + 3.1)
-      doc.line(cbX + 1.7, cbY + 3.1, cbX + 3.2, cbY + 0.9)
+    // Additional manual tests → one extra page per patient
+    if (patient.additionalTests.trim()) {
+      drawSlip(dateStr, patName, patient.additionalTests.trim(), wardUnit, agGender)
     }
+  }
 
-    doc.setFont('helvetica', isSelected ? 'bold' : 'normal')
-    doc.setFontSize(8)
-    doc.setTextColor(isSelected ? 255 : 55, isSelected ? 255 : 65, isSelected ? 255 : 75)
-    doc.text(test.label, cbX + 7, y)
-  })
-
-  // ── Signature section ────────────────────────────────────────
-  const sigTop = testTop + allTests.length * lineH + 10
-
-  doc.setDrawColor(180, 190, 200)
-  doc.setLineWidth(0.3)
-  doc.line(margin, sigTop, W / 2 - 4, sigTop)
-
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(7.5)
-  doc.setTextColor(100, 110, 120)
-  doc.text('Signature', margin, sigTop + 5)
-
-  // Medical Officer box
-  const moBoxX = W / 2 + 4
-  const moBoxW = W / 2 - margin - 4
-  doc.setDrawColor(14, 90, 120)
-  doc.setLineWidth(0.3)
-  doc.rect(moBoxX, sigTop - 14, moBoxW, 18)
-
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(7)
-  doc.setTextColor(14, 90, 120)
-  doc.text('MEDICAL OFFICER', moBoxX + moBoxW / 2, sigTop + 6, { align: 'center' })
-
-  // ── Footer ───────────────────────────────────────────────────
-  doc.setFillColor(240, 245, 248)
-  doc.rect(0, 200, W, 10, 'F')
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(6.5)
-  doc.setTextColor(130, 140, 150)
-  doc.text('Generated by DoctorFormAssist • www.doctorformassist.com', W / 2, 206, {
-    align: 'center',
-  })
-
-  return doc.output('arraybuffer') as unknown as Uint8Array
-}
-
-/** Sanitize string for safe use as a filename */
-export function toFilename(patientName: string, testShortLabel: string): string {
-  const safe = (s: string) => s.replace(/[^a-zA-Z0-9_\-]/g, '_').replace(/_+/g, '_')
-  return `${safe(patientName)}_${safe(testShortLabel)}.pdf`
+  return doc.output('arraybuffer') as ArrayBuffer
 }

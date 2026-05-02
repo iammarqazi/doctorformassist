@@ -1,17 +1,17 @@
 import styles from './DownloadButton.module.css'
 
 interface Props {
-  totalPdfs: number
+  totalPages: number
   disabled: boolean
   state: 'idle' | 'generating' | 'done' | 'error'
   error: string | null
   onClick: () => void
 }
 
-export function DownloadButton({ totalPdfs, disabled, state, error, onClick }: Props) {
+export function DownloadButton({ totalPages, disabled, state, error, onClick }: Props) {
   const label = {
-    idle: `Download ZIP  (${totalPdfs} PDF${totalPdfs !== 1 ? 's' : ''})`,
-    generating: 'Generating PDFs…',
+    idle: `Download PDF  (${totalPages} page${totalPages !== 1 ? 's' : ''})`,
+    generating: 'Generating PDF…',
     done: '✓ Downloaded!',
     error: 'Failed — try again',
   }[state]
@@ -34,7 +34,7 @@ export function DownloadButton({ totalPdfs, disabled, state, error, onClick }: P
         {label}
       </button>
       <p className={styles.hint}>
-        All PDFs packed into a single ZIP file — one per patient per test
+        All tests in a single PDF — one page per test per patient
       </p>
     </div>
   )

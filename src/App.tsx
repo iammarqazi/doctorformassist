@@ -8,12 +8,14 @@ import { useDownload } from '@/hooks/useDownload'
 import type { SessionData } from '@/types'
 import styles from './App.module.css'
 
+const today = new Date().toISOString().slice(0, 10)
+
 export default function App() {
-  const [session, setSession] = useState<SessionData>({ date: '', doctor: '' })
-  const { patients, addPatient, removePatient, clearAll, totalPdfs } = usePatientQueue()
+  const [session, setSession] = useState<SessionData>({ date: today, unit: 'HRB', ward: '43' })
+  const { patients, addPatient, removePatient, clearAll, totalPages } = usePatientQueue()
   const { state: dlState, error: dlError, download } = useDownload()
 
-  const sessionValid = session.date.trim() !== '' && session.doctor.trim() !== ''
+  const sessionValid = session.date.trim() !== '' && session.unit.trim() !== '' && session.ward.trim() !== ''
   const canDownload = sessionValid && patients.length > 0
 
   const handleDownload = () => {
@@ -46,7 +48,7 @@ export default function App() {
       <div className={styles.hero}>
         <h1 className={styles.heroTitle}>Lab Requisition Generator</h1>
         <p className={styles.heroSub}>
-          Set session details once · Add patients · Download all PDFs as a ZIP
+          Set session details once · Add patients · Download all pages as a single PDF
         </p>
       </div>
 
@@ -60,7 +62,7 @@ export default function App() {
           <SessionForm value={session} onChange={setSession} />
           {!sessionValid && (
             <p className={styles.stepHint} role="status">
-              Fill in date and doctor name to continue
+              Fill in date, unit, and ward to continue
             </p>
           )}
         </section>
@@ -93,11 +95,11 @@ export default function App() {
             )}
           </div>
 
-          <PatientQueue patients={patients} onRemove={removePatient} totalPdfs={totalPdfs} />
+          <PatientQueue patients={patients} onRemove={removePatient} totalPages={totalPages} />
 
           <div className={styles.downloadWrap}>
             <DownloadButton
-              totalPdfs={totalPdfs}
+              totalPages={totalPages}
               disabled={!canDownload}
               state={dlState}
               error={dlError}

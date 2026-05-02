@@ -1,43 +1,26 @@
 import type { PatientEntry, SessionData } from '@/types'
-import { TEST_MAP } from '@/constants/tests'
-import { generateLabPdf, toFilename } from './generatePdf'
+import { generateLabPdf } from './generatePdf'
 
-export interface ZipResult {
+export interface DownloadResult {
   blob: Blob
-  fileCount: number
+  pageCount: number
 }
 
 /**
- * Generates a ZIP containing one PDF per (patient × test) combination.
- * JSZip and jsPDF are dynamically imported — only loaded on demand.
+ * Generates a single multi-page PDF for all patients and their tests.
+ * Returns a Blob (application/pdf) and the total page count.
  */
-export async function generateZip(
+export async function generatePdfDownload(
   session: SessionData,
   patients: PatientEntry[]
-): Promise<ZipResult> {
-  const { default: JSZip } = await import('jszip')
-  const zip = new JSZip()
-
-  let fileCount = 0
-
-  for (const patient of patients) {
-    for (const testId of patient.tests) {
-      const pdfBytes = await generateLabPdf({
-        date: session.date,
-        doctor: session.doctor,
-        patientName: patient.name,
-        testId,
-      })
-
-      const test = TEST_MAP.get(testId)
-      const filename = toFilename(patient.name, test?.shortLabel ?? testId)
-      zip.file(filename, pdfBytes)
-      fileCount++
-    }
-  }
-
-  const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' })
-  return { blob, fileCount }
+): Promise<DownloadResult> {
+  const pdfBytes = await generateLabPdf(session, patients)
+  const blob = new Blob([pdfBytes], { type: 'application/pdf' })
+  const pageCount = patients.reduce(
+    (sum, p) => sum + p.tests.length + (p.additionalTests.trim() ? 1 : 0),
+    0
+  )
+  return { blob, pageCount }
 }
 
 /** Triggers a browser file download for a Blob */

@@ -30,16 +30,32 @@ export function SessionForm({ value, onChange }: Props) {
           />
         </div>
         <div className={styles.field}>
-          <label htmlFor="session-doctor" className={styles.label}>
-            Doctor <span className={styles.required} aria-label="required">*</span>
+          <label htmlFor="session-unit" className={styles.label}>
+            Unit <span className={styles.required} aria-label="required">*</span>
           </label>
           <input
-            id="session-doctor"
+            id="session-unit"
             type="text"
             className={styles.input}
-            placeholder="Dr. Sharma"
-            value={value.doctor}
-            onChange={(e) => onChange({ ...value, doctor: e.target.value })}
+            placeholder="HRB"
+            value={value.unit}
+            onChange={(e) => onChange({ ...value, unit: e.target.value.toUpperCase() })}
+            required
+            aria-required="true"
+            autoComplete="off"
+          />
+        </div>
+        <div className={styles.field}>
+          <label htmlFor="session-ward" className={styles.label}>
+            Ward <span className={styles.required} aria-label="required">*</span>
+          </label>
+          <input
+            id="session-ward"
+            type="text"
+            className={styles.input}
+            placeholder="43"
+            value={value.ward}
+            onChange={(e) => onChange({ ...value, ward: e.target.value })}
             required
             aria-required="true"
             autoComplete="off"

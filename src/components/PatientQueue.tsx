@@ -5,10 +5,10 @@ import styles from './PatientQueue.module.css'
 interface Props {
   patients: PatientEntry[]
   onRemove: (id: string) => void
-  totalPdfs: number
+  totalPages: number
 }
 
-export function PatientQueue({ patients, onRemove, totalPdfs }: Props) {
+export function PatientQueue({ patients, onRemove, totalPages }: Props) {
   if (patients.length === 0) {
     return (
       <div className={styles.empty} role="status" aria-label="Patient queue empty">
@@ -29,7 +29,7 @@ export function PatientQueue({ patients, onRemove, totalPdfs }: Props) {
           </span>
         </h3>
         <span className={styles.pdfCount} aria-live="polite">
-          {totalPdfs} PDF{totalPdfs !== 1 ? 's' : ''} will be generated
+          {totalPages} page{totalPages !== 1 ? 's' : ''} will be generated
         </span>
       </div>
 
@@ -41,13 +41,23 @@ export function PatientQueue({ patients, onRemove, totalPdfs }: Props) {
                 {patient.name.charAt(0).toUpperCase()}
               </span>
               <div className={styles.itemInfo}>
-                <span className={styles.patientName}>{patient.name}</span>
+                <div className={styles.nameRow}>
+                  <span className={styles.patientName}>{patient.name}</span>
+                  <span className={styles.patientMeta}>
+                    {patient.age}y · {patient.gender}
+                  </span>
+                </div>
                 <div className={styles.testTags} role="list" aria-label={`Tests for ${patient.name}`}>
                   {patient.tests.map((testId: string) => (
                     <span key={testId} className={styles.tag} role="listitem">
                       {TEST_MAP.get(testId as never)?.shortLabel ?? testId}
                     </span>
                   ))}
+                  {patient.additionalTests.trim() && (
+                    <span className={styles.tagExtra} role="listitem" title={patient.additionalTests}>
+                      +additional
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
