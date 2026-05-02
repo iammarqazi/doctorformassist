@@ -1,24 +1,24 @@
 import type { PatientEntry, SessionData } from '@/types'
 import { TEST_MAP } from '@/constants/tests'
 
-// Exact dimensions from CBC5.docx (twips → mm: 2835 twips = 50mm, 851 twips = 15mm)
-const PAGE_W = 50
-const PAGE_H = 15
+// Exact dimensions from CBC5.docx: 2835 twips × 851 twips = 50mm × 15mm landscape strip
+const PAGE_W = 50   // mm — width (the long axis)
+const PAGE_H = 15   // mm — height (the short axis)
 
-// Column layout matching DOCX 2-col structure (57 twip margins, 113 twip gap)
-// Left col: starts at 1mm | Right col: starts at 1 + 23 + 2 = 26mm
+// 2-column layout matching DOCX (57 twip left/right margins = 1mm, 113 twip gap = 2mm)
+// Col 1: 1mm → ~24mm  |  Col 2: 26mm → ~49mm
 const LEFT_X = 1
 const RIGHT_X = 26
 
-// Baseline Y positions for 3 rows of 10pt text on a 15mm page
-// Top margin: 43 twips ≈ 0.76mm; cap height at 10pt ≈ 2.5mm; line height ≈ 4.2mm
-const Y1 = 3.5   // row 1: date | [blank]
-const Y2 = 7.5   // row 2: patient name | ward/unit
-const Y3 = 11.5  // row 3: test acronym | age/gender
+// Baseline Y for each of the 3 text rows on a 15mm-tall page
+// Top margin ≈ 0.76mm; Helvetica 10pt cap-height ≈ 2.5mm; line spacing ≈ 4.2mm
+const Y1 = 3.5
+const Y2 = 7.7
+const Y3 = 11.9
 
-const MAX_COL_W = 22  // mm — max width per column before auto-sizing kicks in
-const BASE_FONT = 10  // pt — matches DOCX sz val="20" (20 half-points = 10pt)
-const MIN_FONT = 6    // pt — minimum for long additional-test strings
+const BASE_FONT = 10   // pt — matches DOCX sz val="20" (20 half-points = 10pt)
+const MIN_FONT  = 6    // pt — floor for long additional-test strings
+const MAX_COL_W = 23   // mm — each column is ~23mm wide
 
 const formatDate = (d: string) => {
   if (!d) return '—'
@@ -27,14 +27,16 @@ const formatDate = (d: string) => {
 }
 
 /**
- * Generates a single multi-page PDF (one page per patient × test combination).
- * Page size 50mm × 15mm matches CBC5.docx exactly — 2 columns, 3 rows, 10pt bold.
- * Patients appear in order; additional-tests text (if any) gets one extra page per patient.
+ * Generates a single multi-page PDF.
+ * Every page is 50 mm × 15 mm landscape (matching CBC5.docx exactly).
+ * Layout: 2 columns, 3 rows, 10pt regular Helvetica — no decorations.
  */
 export async function generateLabPdf(session: SessionData, patients: PatientEntry[]): Promise<ArrayBuffer> {
   const { default: jsPDF } = await import('jspdf')
 
-  const doc = new jsPDF({ unit: 'mm', format: [PAGE_W, PAGE_H] })
+  // orientation:'landscape' ensures jsPDF treats [50, 15] as width=50, height=15
+  // Without it, portrait mode swaps the dims to 15×50 (tall strip instead of wide strip).
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [PAGE_W, PAGE_H] })
   let firstPage = true
 
   const fitAndDraw = (text: string, x: number, y: number, maxW: number) => {
@@ -51,39 +53,38 @@ export async function generateLabPdf(session: SessionData, patients: PatientEntr
   const drawSlip = (
     col1row1: string,  // date
     col1row2: string,  // patient name
-    col1row3: string,  // test acronym or additional-tests text
+    col1row3: string,  // test acronym or free-text additional tests
     col2row2: string,  // ward/unit
     col2row3: string,  // age/gender
   ) => {
-    if (!firstPage) doc.addPage([PAGE_W, PAGE_H])
+    if (!firstPage) doc.addPage([PAGE_W, PAGE_H], 'landscape')
     firstPage = false
 
-    doc.setFont('helvetica', 'bold')
+    doc.setFont('helvetica', 'normal')
     doc.setTextColor(0, 0, 0)
     doc.setFontSize(BASE_FONT)
 
-    // Row 1 — date only (right col blank, like the DOCX template)
+    // Row 1 — date (left col only; right col blank per DOCX template)
     doc.text(col1row1, LEFT_X, Y1)
 
-    // Row 2 — name | ward/unit
+    // Row 2 — patient name | ward/unit
     doc.text(col1row2, LEFT_X, Y2)
     doc.text(col2row2, RIGHT_X, Y2)
 
-    // Row 3 — test (auto-sized) | age/gender
+    // Row 3 — test acronym (auto-sized) | age/gender
     fitAndDraw(col1row3, LEFT_X, Y3, MAX_COL_W)
     doc.text(col2row3, RIGHT_X, Y3)
   }
 
-  const dateStr = formatDate(session.date)
+  const dateStr  = formatDate(session.date)
   const wardUnit = `Ward ${session.ward}/ ${session.unit}`
 
   for (const patient of patients) {
     const agGender = `${patient.age}/ ${patient.gender.toUpperCase()}`
-    const patName = patient.name.toUpperCase()
+    const patName  = patient.name.toUpperCase()
 
     for (const testId of patient.tests) {
-      const testDef = TEST_MAP.get(testId)
-      const testLabel = testDef?.shortLabel ?? testId
+      const testLabel = TEST_MAP.get(testId)?.shortLabel ?? testId
       drawSlip(dateStr, patName, testLabel, wardUnit, agGender)
     }
 
