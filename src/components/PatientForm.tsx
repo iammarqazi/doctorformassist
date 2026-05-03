@@ -4,7 +4,15 @@ import type { TestId } from '@/types'
 import styles from './PatientForm.module.css'
 
 interface Props {
-  onAdd: (name: string, age: number, gender: 'Male' | 'Female', tests: TestId[], additionalTests: string) => void
+  onAdd: (
+    name: string,
+    age: number,
+    gender: 'Male' | 'Female',
+    inpatientNo: string,
+    vacutainerLabel: boolean,
+    tests: TestId[],
+    additionalTests: string
+  ) => void
   disabled?: boolean
 }
 
@@ -12,9 +20,11 @@ export function PatientForm({ onAdd, disabled }: Props) {
   const [name, setName] = useState('')
   const [age, setAge] = useState('')
   const [gender, setGender] = useState<'Male' | 'Female' | ''>('')
+  const [inpatientNo, setInpatientNo] = useState('')
+  const [vacutainerLabel, setVacutainerLabel] = useState(false)
   const [selected, setSelected] = useState<Set<TestId>>(new Set())
   const [additionalTests, setAdditionalTests] = useState('')
-  const [errors, setErrors] = useState<{ name?: string; age?: string; gender?: string; tests?: string }>({})
+  const [errors, setErrors] = useState<{ name?: string; age?: string; gender?: string; inpatientNo?: string; tests?: string }>({})
 
   const toggleTest = (id: TestId) => {
     setSelected((prev) => {
@@ -26,7 +36,7 @@ export function PatientForm({ onAdd, disabled }: Props) {
   }
 
   const selectAll = () => setSelected(new Set(TESTS.map((t) => t.id)))
-  const clearAll = () => setSelected(new Set())
+  const clearAll  = () => setSelected(new Set())
 
   const handleAdd = () => {
     const errs: typeof errors = {}
@@ -36,19 +46,31 @@ export function PatientForm({ onAdd, disabled }: Props) {
     const ageNum = parseInt(age, 10)
     if (!age || isNaN(ageNum) || ageNum <= 0 || ageNum > 150) errs.age = 'Enter a valid age'
     if (!gender) errs.gender = 'Gender is required'
+    if (inpatientNo && !/^\d{1,9}$/.test(inpatientNo)) errs.inpatientNo = 'Up to 9 digits only'
     if (selected.size === 0 && !additionalTests.trim()) errs.tests = 'Select at least one test or enter additional tests'
     if (Object.keys(errs).length) { setErrors(errs); return }
 
-    onAdd(trimmedName, ageNum, gender as 'Male' | 'Female', Array.from(selected), additionalTests.trim())
+    onAdd(
+      trimmedName,
+      ageNum,
+      gender as 'Male' | 'Female',
+      inpatientNo,
+      vacutainerLabel,
+      Array.from(selected),
+      additionalTests.trim()
+    )
     setName('')
     setAge('')
     setGender('')
+    setInpatientNo('')
+    setVacutainerLabel(false)
     setSelected(new Set())
     setAdditionalTests('')
     setErrors({})
   }
 
-  const pageCount = selected.size + (additionalTests.trim() ? 1 : 0)
+  const basePages  = selected.size + (additionalTests.trim() ? 1 : 0)
+  const pageCount  = vacutainerLabel ? basePages * 2 : basePages
 
   return (
     <div className={styles.card}>
@@ -70,22 +92,18 @@ export function PatientForm({ onAdd, disabled }: Props) {
           placeholder="e.g. RAHULMEHTA"
           value={name}
           maxLength={11}
-          onChange={(e) => {
-            setName(e.target.value.toUpperCase())
-            setErrors((er) => ({ ...er, name: undefined }))
-          }}
+          onChange={(e) => { setName(e.target.value.toUpperCase()); setErrors((er) => ({ ...er, name: undefined })) }}
           onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
           aria-invalid={!!errors.name}
-          aria-describedby={errors.name ? 'name-error' : undefined}
           disabled={disabled}
           autoComplete="off"
         />
-        {errors.name && <span id="name-error" className={styles.errorMsg} role="alert">{errors.name}</span>}
+        {errors.name && <span className={styles.errorMsg} role="alert">{errors.name}</span>}
       </div>
 
-      {/* Age + Gender row */}
-      <div className={styles.ageGenderRow}>
-        <div className={styles.ageField}>
+      {/* Age + Gender + Inpatient No. */}
+      <div className={styles.triRow}>
+        <div className={styles.subField}>
           <label htmlFor="patient-age" className={styles.label}>
             Age <span className={styles.required}>*</span>
           </label>
@@ -97,19 +115,14 @@ export function PatientForm({ onAdd, disabled }: Props) {
             value={age}
             min={1}
             max={150}
-            onChange={(e) => {
-              setAge(e.target.value)
-              setErrors((er) => ({ ...er, age: undefined }))
-            }}
-            aria-invalid={!!errors.age}
-            aria-describedby={errors.age ? 'age-error' : undefined}
+            onChange={(e) => { setAge(e.target.value); setErrors((er) => ({ ...er, age: undefined })) }}
             disabled={disabled}
             autoComplete="off"
           />
-          {errors.age && <span id="age-error" className={styles.errorMsg} role="alert">{errors.age}</span>}
+          {errors.age && <span className={styles.errorMsg} role="alert">{errors.age}</span>}
         </div>
 
-        <div className={styles.genderField}>
+        <div className={styles.subField}>
           <label htmlFor="patient-gender" className={styles.label}>
             Gender <span className={styles.required}>*</span>
           </label>
@@ -117,19 +130,37 @@ export function PatientForm({ onAdd, disabled }: Props) {
             id="patient-gender"
             className={`${styles.select} ${errors.gender ? styles.inputError : ''}`}
             value={gender}
-            onChange={(e) => {
-              setGender(e.target.value as 'Male' | 'Female' | '')
-              setErrors((er) => ({ ...er, gender: undefined }))
-            }}
-            aria-invalid={!!errors.gender}
-            aria-describedby={errors.gender ? 'gender-error' : undefined}
+            onChange={(e) => { setGender(e.target.value as 'Male' | 'Female' | ''); setErrors((er) => ({ ...er, gender: undefined })) }}
             disabled={disabled}
           >
             <option value="">Select…</option>
             <option value="Male">Male</option>
             <option value="Female">Female</option>
           </select>
-          {errors.gender && <span id="gender-error" className={styles.errorMsg} role="alert">{errors.gender}</span>}
+          {errors.gender && <span className={styles.errorMsg} role="alert">{errors.gender}</span>}
+        </div>
+
+        <div className={styles.subField}>
+          <label htmlFor="patient-ipno" className={styles.label}>
+            Inpatient No.
+          </label>
+          <input
+            id="patient-ipno"
+            type="text"
+            inputMode="numeric"
+            className={`${styles.input} ${errors.inpatientNo ? styles.inputError : ''}`}
+            placeholder="12345"
+            value={inpatientNo}
+            maxLength={9}
+            onChange={(e) => {
+              const val = e.target.value.replace(/\D/g, '').slice(0, 9)
+              setInpatientNo(val)
+              setErrors((er) => ({ ...er, inpatientNo: undefined }))
+            }}
+            disabled={disabled}
+            autoComplete="off"
+          />
+          {errors.inpatientNo && <span className={styles.errorMsg} role="alert">{errors.inpatientNo}</span>}
         </div>
       </div>
 
@@ -143,9 +174,7 @@ export function PatientForm({ onAdd, disabled }: Props) {
           </div>
         </legend>
 
-        {errors.tests && (
-          <span className={styles.errorMsg} role="alert">{errors.tests}</span>
-        )}
+        {errors.tests && <span className={styles.errorMsg} role="alert">{errors.tests}</span>}
 
         <div className={styles.checkboxGrid}>
           {TESTS.map((test) => (
@@ -174,6 +203,28 @@ export function PatientForm({ onAdd, disabled }: Props) {
         </div>
       </fieldset>
 
+      {/* Vacutainer Label */}
+      <label className={styles.vacutainerLabel}>
+        <input
+          type="checkbox"
+          className={styles.checkInput}
+          checked={vacutainerLabel}
+          onChange={(e) => setVacutainerLabel(e.target.checked)}
+          disabled={disabled}
+        />
+        <span className={styles.vacutainerBox} aria-hidden="true">
+          {vacutainerLabel && (
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+              <path d="M1.5 5L4 7.5L8.5 2.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          )}
+        </span>
+        <span className={styles.vacutainerText}>
+          Vacutainer Label
+          <span className={styles.vacutainerHint}> — prints each test page twice consecutively</span>
+        </span>
+      </label>
+
       {/* Additional Tests */}
       <div className={styles.additionalField}>
         <label htmlFor="additional-tests" className={styles.label}>
@@ -185,10 +236,7 @@ export function PatientForm({ onAdd, disabled }: Props) {
           className={styles.textarea}
           placeholder="e.g. Blood Culture, Urine C&S, D-Dimer"
           value={additionalTests}
-          onChange={(e) => {
-            setAdditionalTests(e.target.value)
-            setErrors((er) => ({ ...er, tests: undefined }))
-          }}
+          onChange={(e) => { setAdditionalTests(e.target.value); setErrors((er) => ({ ...er, tests: undefined })) }}
           disabled={disabled}
           rows={2}
         />

@@ -31,6 +31,8 @@ export interface PatientEntry {
   name: string
   age: number
   gender: 'Male' | 'Female'
+  inpatientNo: string
+  vacutainerLabel: boolean
   tests: TestId[]
   additionalTests: string
 }

@@ -45,6 +45,7 @@ export function PatientQueue({ patients, onRemove, totalPages }: Props) {
                   <span className={styles.patientName}>{patient.name}</span>
                   <span className={styles.patientMeta}>
                     {patient.age}y · {patient.gender}
+                    {patient.inpatientNo && ` · IP#${patient.inpatientNo}`}
                   </span>
                 </div>
                 <div className={styles.testTags} role="list" aria-label={`Tests for ${patient.name}`}>
@@ -56,6 +57,11 @@ export function PatientQueue({ patients, onRemove, totalPages }: Props) {
                   {patient.additionalTests.trim() && (
                     <span className={styles.tagExtra} role="listitem" title={patient.additionalTests}>
                       +additional
+                    </span>
+                  )}
+                  {patient.vacutainerLabel && (
+                    <span className={styles.tagVac} role="listitem">
+                      ×2 vacutainer
                     </span>
                   )}
                 </div>

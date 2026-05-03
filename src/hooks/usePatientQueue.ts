@@ -8,10 +8,18 @@ export function usePatientQueue() {
   const [patients, setPatients] = useState<PatientEntry[]>([])
 
   const addPatient = useCallback(
-    (name: string, age: number, gender: 'Male' | 'Female', tests: TestId[], additionalTests: string) => {
+    (
+      name: string,
+      age: number,
+      gender: 'Male' | 'Female',
+      inpatientNo: string,
+      vacutainerLabel: boolean,
+      tests: TestId[],
+      additionalTests: string
+    ) => {
       setPatients((prev) => [
         ...prev,
-        { id: nextId(), name: name.trim(), age, gender, tests, additionalTests },
+        { id: nextId(), name: name.trim(), age, gender, inpatientNo, vacutainerLabel, tests, additionalTests },
       ])
     },
     []
@@ -23,10 +31,10 @@ export function usePatientQueue() {
 
   const clearAll = useCallback(() => setPatients([]), [])
 
-  const totalPages = patients.reduce(
-    (sum, p) => sum + p.tests.length + (p.additionalTests.trim() ? 1 : 0),
-    0
-  )
+  const totalPages = patients.reduce((sum, p) => {
+    const base = p.tests.length + (p.additionalTests.trim() ? 1 : 0)
+    return sum + (p.vacutainerLabel ? base * 2 : base)
+  }, 0)
 
   return { patients, addPatient, removePatient, clearAll, totalPages }
 }
