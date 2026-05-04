@@ -13,6 +13,8 @@ export type TestId =
   | 'HBA1C'
   | 'PT_INR'
   | 'ABG'
+  | 'HBSAG_HCV'
+  | 'HIV'
 
 export interface TestDefinition {
   id: TestId

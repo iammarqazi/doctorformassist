@@ -6,6 +6,8 @@ export const TESTS: TestDefinition[] = [
   { id: 'RBS',           label: 'RBS — Random Blood Sugar',                                shortLabel: 'RBS' },
   { id: 'DETAILED_LFT',  label: 'LFT with Ca²⁺, Mg²⁺, PO₄³⁻',                            shortLabel: 'LFT w/ Ca,Mg,PO4' },
   { id: 'TFT',           label: 'TFT — Thyroid Function Test (FT3, FT4, TSH)',             shortLabel: 'TFT' },
+  { id: 'HBSAG_HCV',    label: 'HBsAg, HCV',                                              shortLabel: 'HBsAg/HCV' },
+  { id: 'HIV',           label: 'HIV',                                                     shortLabel: 'HIV' },
   { id: 'ESR',           label: 'ESR — Erythrocyte Sedimentation Rate',                   shortLabel: 'ESR' },
   { id: 'S_ELECTROLYTES',label: 'S. Electrolytes — Serum Electrolytes',                   shortLabel: 'S. Electrolytes' },
   { id: 'LFT',           label: 'LFT — Liver Function Test',                               shortLabel: 'LFT' },
