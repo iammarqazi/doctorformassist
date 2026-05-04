@@ -11,7 +11,9 @@ interface Props {
     inpatientNo: string,
     vacutainerLabel: boolean,
     tests: TestId[],
-    additionalTests: string
+    tomorrowTests: TestId[],
+    additionalTests: string,
+    additionalTestsTomorrow: boolean
   ) => void
   disabled?: boolean
 }
@@ -23,20 +25,38 @@ export function PatientForm({ onAdd, disabled }: Props) {
   const [inpatientNo, setInpatientNo] = useState('')
   const [vacutainerLabel, setVacutainerLabel] = useState(false)
   const [selected, setSelected] = useState<Set<TestId>>(new Set())
+  const [tomorrowTests, setTomorrowTests] = useState<Set<TestId>>(new Set())
   const [additionalTests, setAdditionalTests] = useState('')
+  const [additionalTestsTomorrow, setAdditionalTestsTomorrow] = useState(false)
   const [errors, setErrors] = useState<{ name?: string; age?: string; gender?: string; inpatientNo?: string; tests?: string }>({})
 
   const toggleTest = (id: TestId) => {
     setSelected((prev) => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) {
+        next.delete(id)
+        // remove from tomorrow too if deselected
+        setTomorrowTests((t) => { const nt = new Set(t); nt.delete(id); return nt })
+      } else {
+        next.add(id)
+      }
       return next
     })
     setErrors((e) => ({ ...e, tests: undefined }))
   }
 
+  const toggleTomorrow = (id: TestId, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setTomorrowTests((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
   const selectAll = () => setSelected(new Set(TESTS.map((t) => t.id)))
-  const clearAll  = () => setSelected(new Set())
+  const clearAll  = () => { setSelected(new Set()); setTomorrowTests(new Set()) }
 
   const handleAdd = () => {
     const errs: typeof errors = {}
@@ -57,7 +77,9 @@ export function PatientForm({ onAdd, disabled }: Props) {
       inpatientNo,
       vacutainerLabel,
       Array.from(selected),
-      additionalTests.trim()
+      Array.from(tomorrowTests),
+      additionalTests.trim(),
+      additionalTestsTomorrow
     )
     setName('')
     setAge('')
@@ -65,12 +87,14 @@ export function PatientForm({ onAdd, disabled }: Props) {
     setInpatientNo('')
     setVacutainerLabel(false)
     setSelected(new Set())
+    setTomorrowTests(new Set())
     setAdditionalTests('')
+    setAdditionalTestsTomorrow(false)
     setErrors({})
   }
 
-  const basePages  = selected.size + (additionalTests.trim() ? 1 : 0)
-  const pageCount  = vacutainerLabel ? basePages * 2 : basePages
+  const basePages = selected.size + (additionalTests.trim() ? 1 : 0)
+  const pageCount = vacutainerLabel ? basePages * 2 : basePages
 
   return (
     <div className={styles.card}>
@@ -177,29 +201,44 @@ export function PatientForm({ onAdd, disabled }: Props) {
         {errors.tests && <span className={styles.errorMsg} role="alert">{errors.tests}</span>}
 
         <div className={styles.checkboxGrid}>
-          {TESTS.map((test) => (
-            <label
-              key={test.id}
-              className={`${styles.checkLabel} ${selected.has(test.id) ? styles.checked : ''}`}
-            >
-              <input
-                type="checkbox"
-                className={styles.checkInput}
-                checked={selected.has(test.id)}
-                onChange={() => toggleTest(test.id)}
-                disabled={disabled}
-                aria-label={test.label}
-              />
-              <span className={styles.checkBox} aria-hidden="true">
-                {selected.has(test.id) && (
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                    <path d="M1.5 5L4 7.5L8.5 2.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
+          {TESTS.map((test) => {
+            const isSelected = selected.has(test.id)
+            const isTomorrow = tomorrowTests.has(test.id)
+            return (
+              <label
+                key={test.id}
+                className={`${styles.checkLabel} ${isSelected ? styles.checked : ''}`}
+              >
+                <input
+                  type="checkbox"
+                  className={styles.checkInput}
+                  checked={isSelected}
+                  onChange={() => toggleTest(test.id)}
+                  disabled={disabled}
+                  aria-label={test.label}
+                />
+                <span className={styles.checkBox} aria-hidden="true">
+                  {isSelected && (
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                      <path d="M1.5 5L4 7.5L8.5 2.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
+                </span>
+                <span className={styles.checkText}>{test.label}</span>
+                {isSelected && (
+                  <button
+                    type="button"
+                    className={`${styles.dateToggle} ${isTomorrow ? styles.dateToggleTmrw : styles.dateToggleToday}`}
+                    onClick={(e) => toggleTomorrow(test.id, e)}
+                    title={isTomorrow ? 'Tomorrow — click to set to Today' : 'Today — click to set to Tomorrow'}
+                    disabled={disabled}
+                  >
+                    {isTomorrow ? '+1' : 'T'}
+                  </button>
                 )}
-              </span>
-              <span className={styles.checkText}>{test.label}</span>
-            </label>
-          ))}
+              </label>
+            )
+          })}
         </div>
       </fieldset>
 
@@ -227,16 +266,33 @@ export function PatientForm({ onAdd, disabled }: Props) {
 
       {/* Additional Tests */}
       <div className={styles.additionalField}>
-        <label htmlFor="additional-tests" className={styles.label}>
-          Additional Tests
-          <span className={styles.optionalHint}>(optional — printed on a separate page)</span>
-        </label>
+        <div className={styles.additionalHeader}>
+          <label htmlFor="additional-tests" className={styles.label}>
+            Additional Tests
+            <span className={styles.optionalHint}>(optional — printed on a separate page)</span>
+          </label>
+          {additionalTests.trim() && (
+            <button
+              type="button"
+              className={`${styles.dateToggle} ${additionalTestsTomorrow ? styles.dateToggleTmrw : styles.dateToggleToday}`}
+              onClick={() => setAdditionalTestsTomorrow((v) => !v)}
+              title={additionalTestsTomorrow ? 'Tomorrow — click for Today' : 'Today — click for Tomorrow'}
+              disabled={disabled}
+            >
+              {additionalTestsTomorrow ? '+1' : 'T'}
+            </button>
+          )}
+        </div>
         <textarea
           id="additional-tests"
           className={styles.textarea}
           placeholder="e.g. Blood Culture, Urine C&S, D-Dimer"
           value={additionalTests}
-          onChange={(e) => { setAdditionalTests(e.target.value); setErrors((er) => ({ ...er, tests: undefined })) }}
+          onChange={(e) => {
+            setAdditionalTests(e.target.value)
+            setErrors((er) => ({ ...er, tests: undefined }))
+            if (!e.target.value.trim()) setAdditionalTestsTomorrow(false)
+          }}
           disabled={disabled}
           rows={2}
         />

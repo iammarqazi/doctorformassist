@@ -15,11 +15,24 @@ export function usePatientQueue() {
       inpatientNo: string,
       vacutainerLabel: boolean,
       tests: TestId[],
-      additionalTests: string
+      tomorrowTests: TestId[],
+      additionalTests: string,
+      additionalTestsTomorrow: boolean
     ) => {
       setPatients((prev) => [
         ...prev,
-        { id: nextId(), name: name.trim(), age, gender, inpatientNo, vacutainerLabel, tests, additionalTests },
+        {
+          id: nextId(),
+          name: name.trim(),
+          age,
+          gender,
+          inpatientNo,
+          vacutainerLabel,
+          tests,
+          tomorrowTests,
+          additionalTests,
+          additionalTestsTomorrow,
+        },
       ])
     },
     []

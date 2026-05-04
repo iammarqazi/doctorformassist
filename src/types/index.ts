@@ -34,5 +34,7 @@ export interface PatientEntry {
   inpatientNo: string
   vacutainerLabel: boolean
   tests: TestId[]
+  tomorrowTests: TestId[]          // subset of tests scheduled for session date + 1
   additionalTests: string
+  additionalTestsTomorrow: boolean
 }

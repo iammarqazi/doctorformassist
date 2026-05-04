@@ -5,19 +5,18 @@ import { TEST_MAP } from '@/constants/tests'
 const PAGE_W = 50
 const PAGE_H = 15
 
-// 2-column layout matching DOCX (57 twip margins = 1mm, 113 twip col gap = 2mm)
-// Col 1: x=1mm  |  Col 2: x=26mm
+// 2-column layout (57 twip margins = 1mm, 113 twip gap = 2mm)
 const LEFT_X  = 1
 const RIGHT_X = 26
 
-// Baseline Y for each of the 3 rows on a 15mm-tall page
-const Y1 = 3.5   // date | inpatient no.
-const Y2 = 7.7   // patient name | ward/unit
-const Y3 = 11.9  // test acronym | age/gender
+// Baseline Y for each row on a 15mm-tall page
+const Y1 = 3.5
+const Y2 = 7.7
+const Y3 = 11.9
 
-const BASE_FONT = 10  // pt — matches DOCX sz val="20" (20 half-points = 10pt)
-const MIN_FONT  = 6   // pt — floor for long additional-test strings
-const MAX_COL_W = 23  // mm — each column width
+const BASE_FONT = 10
+const MIN_FONT  = 6
+const MAX_COL_W = 23  // mm per column
 
 const formatDate = (d: string) => {
   if (!d) return '—'
@@ -25,10 +24,18 @@ const formatDate = (d: string) => {
   return `${day}-${m}-${y}`
 }
 
+const addOneDay = (dateStr: string): string => {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  const date = new Date(y, m - 1, d)
+  date.setDate(date.getDate() + 1)
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
 /**
  * Generates a single multi-page PDF.
  * Every page is 50mm × 15mm landscape — 2 columns, 3 rows, 10pt Helvetica.
- * If vacutainerLabel is true for a patient, each test page is printed twice consecutively.
+ * Per-test date: tests in patient.tomorrowTests use session date + 1.
+ * Vacutainer label: each page printed twice consecutively when enabled.
  */
 export async function generateLabPdf(session: SessionData, patients: PatientEntry[]): Promise<ArrayBuffer> {
   const { default: jsPDF } = await import('jspdf')
@@ -51,7 +58,7 @@ export async function generateLabPdf(session: SessionData, patients: PatientEntr
     col1row1: string,   // date
     col1row2: string,   // patient name
     col1row3: string,   // test acronym or additional-tests text
-    col2row1: string,   // inpatient no. (blank if not provided)
+    col2row1: string,   // inpatient no.
     col2row2: string,   // ward/unit
     col2row3: string,   // age/gender
   ) => {
@@ -62,35 +69,36 @@ export async function generateLabPdf(session: SessionData, patients: PatientEntr
     doc.setTextColor(0, 0, 0)
     doc.setFontSize(BASE_FONT)
 
-    // Row 1
     doc.text(col1row1, LEFT_X, Y1)
     if (col2row1) doc.text(col2row1, RIGHT_X, Y1)
 
-    // Row 2
     doc.text(col1row2, LEFT_X, Y2)
     doc.text(col2row2, RIGHT_X, Y2)
 
-    // Row 3 — auto-size left col for long additional-test strings
     fitAndDraw(col1row3, LEFT_X, Y3, MAX_COL_W)
     doc.text(col2row3, RIGHT_X, Y3)
   }
 
-  const dateStr  = formatDate(session.date)
-  const wardUnit = `Ward ${session.ward}/ ${session.unit}`
+  const todayDateStr    = formatDate(session.date)
+  const tomorrowDateStr = formatDate(addOneDay(session.date))
+  const wardUnit        = `Ward ${session.ward}/ ${session.unit}`
 
   for (const patient of patients) {
-    const agGender   = `${patient.age}/ ${patient.gender.toUpperCase()}`
-    const patName    = patient.name.toUpperCase()
-    const ipNo       = patient.inpatientNo ?? ''
-    const duplicate  = patient.vacutainerLabel
+    const agGender  = `${patient.age}/ ${patient.gender.toUpperCase()}`
+    const patName   = patient.name.toUpperCase()
+    const ipNo      = patient.inpatientNo ?? ''
+    const duplicate = patient.vacutainerLabel
+    const tmrwSet   = new Set(patient.tomorrowTests)
 
     for (const testId of patient.tests) {
       const testLabel = TEST_MAP.get(testId)?.shortLabel ?? testId
+      const dateStr   = tmrwSet.has(testId) ? tomorrowDateStr : todayDateStr
       drawSlip(dateStr, patName, testLabel, ipNo, wardUnit, agGender)
       if (duplicate) drawSlip(dateStr, patName, testLabel, ipNo, wardUnit, agGender)
     }
 
     if (patient.additionalTests.trim()) {
+      const dateStr = patient.additionalTestsTomorrow ? tomorrowDateStr : todayDateStr
       drawSlip(dateStr, patName, patient.additionalTests.trim(), ipNo, wardUnit, agGender)
       if (duplicate) drawSlip(dateStr, patName, patient.additionalTests.trim(), ipNo, wardUnit, agGender)
     }
