@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react'
 import type { SessionData } from '@/types'
 import styles from './SessionForm.module.css'
 
@@ -8,14 +7,9 @@ interface Props {
 }
 
 export function SessionForm({ value, onChange }: Props) {
-  const [wardMode, setWardMode] = useState<'WARD' | 'OPD'>(value.locationType || 'WARD')
-
-  useEffect(() => {
-    setWardMode(value.locationType || 'WARD')
-  }, [value.locationType])
+  const wardMode = value.locationType || 'WARD'
 
   const handleModeChange = (mode: 'WARD' | 'OPD') => {
-    setWardMode(mode)
     const defaultValue = mode === 'WARD' ? '43' : '27'
     // Only set default if ward is currently the other mode's default, otherwise keep user's value
     if ((mode === 'WARD' && value.ward === '27') || (mode === 'OPD' && value.ward === '43')) {
