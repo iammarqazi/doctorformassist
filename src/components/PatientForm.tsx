@@ -12,8 +12,8 @@ interface Props {
     vacutainerLabel: boolean,
     tests: TestId[],
     tomorrowTests: TestId[],
-    additionalTests: string,
-    additionalTestsTomorrow: boolean
+    additionalTests: string[],
+    additionalTestsTomorrow: boolean[]
   ) => void
   disabled?: boolean
 }
@@ -26,8 +26,8 @@ export function PatientForm({ onAdd, disabled }: Props) {
   const [vacutainerLabel, setVacutainerLabel] = useState(false)
   const [selected, setSelected] = useState<Set<TestId>>(new Set())
   const [tomorrowTests, setTomorrowTests] = useState<Set<TestId>>(new Set())
-  const [additionalTests, setAdditionalTests] = useState('')
-  const [additionalTestsTomorrow, setAdditionalTestsTomorrow] = useState(false)
+  const [additionalTests, setAdditionalTests] = useState<string[]>([])
+  const [additionalTestsTomorrow, setAdditionalTestsTomorrow] = useState<boolean[]>([])
   const [errors, setErrors] = useState<{ name?: string; age?: string; gender?: string; inpatientNo?: string; tests?: string }>({})
 
   const toggleTest = (id: TestId) => {
@@ -58,6 +58,29 @@ export function PatientForm({ onAdd, disabled }: Props) {
   const selectAll = () => setSelected(new Set(TESTS.map((t) => t.id)))
   const clearAll  = () => { setSelected(new Set()); setTomorrowTests(new Set()) }
 
+  const addAdditionalTest = () => {
+    setAdditionalTests([...additionalTests, ''])
+    setAdditionalTestsTomorrow([...additionalTestsTomorrow, false])
+  }
+
+  const removeAdditionalTest = (index: number) => {
+    setAdditionalTests(additionalTests.filter((_, i) => i !== index))
+    setAdditionalTestsTomorrow(additionalTestsTomorrow.filter((_, i) => i !== index))
+  }
+
+  const updateAdditionalTest = (index: number, value: string) => {
+    const updated = [...additionalTests]
+    updated[index] = value
+    setAdditionalTests(updated)
+    setErrors((e) => ({ ...e, tests: undefined }))
+  }
+
+  const toggleAdditionalTomorrow = (index: number) => {
+    const updated = [...additionalTestsTomorrow]
+    updated[index] = !updated[index]
+    setAdditionalTestsTomorrow(updated)
+  }
+
   const handleAdd = () => {
     const errs: typeof errors = {}
     const trimmedName = name.trim()
@@ -67,7 +90,8 @@ export function PatientForm({ onAdd, disabled }: Props) {
     if (!age || isNaN(ageNum) || ageNum <= 0 || ageNum > 150) errs.age = 'Enter a valid age'
     if (!gender) errs.gender = 'Gender is required'
     if (inpatientNo && !/^\d{1,9}$/.test(inpatientNo)) errs.inpatientNo = 'Up to 9 digits only'
-    if (selected.size === 0 && !additionalTests.trim()) errs.tests = 'Select at least one test or enter additional tests'
+    const hasAdditionalTests = additionalTests.some((t) => t.trim())
+    if (selected.size === 0 && !hasAdditionalTests) errs.tests = 'Select at least one test or enter additional tests'
     if (Object.keys(errs).length) { setErrors(errs); return }
 
     onAdd(
@@ -78,8 +102,8 @@ export function PatientForm({ onAdd, disabled }: Props) {
       vacutainerLabel,
       Array.from(selected),
       Array.from(tomorrowTests),
-      additionalTests.trim(),
-      additionalTestsTomorrow
+      additionalTests.map((t) => t.trim()).filter((t) => t),
+      additionalTestsTomorrow.slice(0, additionalTests.length).filter((_, i) => additionalTests[i].trim())
     )
     setName('')
     setAge('')
@@ -88,12 +112,12 @@ export function PatientForm({ onAdd, disabled }: Props) {
     setVacutainerLabel(false)
     setSelected(new Set())
     setTomorrowTests(new Set())
-    setAdditionalTests('')
-    setAdditionalTestsTomorrow(false)
+    setAdditionalTests([])
+    setAdditionalTestsTomorrow([])
     setErrors({})
   }
 
-  const basePages = selected.size + (additionalTests.trim() ? 1 : 0)
+  const basePages = selected.size + additionalTests.filter((t) => t.trim()).length
   const pageCount = vacutainerLabel ? basePages * 2 : basePages
 
   return (
@@ -267,35 +291,54 @@ export function PatientForm({ onAdd, disabled }: Props) {
       {/* Additional Tests */}
       <div className={styles.additionalField}>
         <div className={styles.additionalHeader}>
-          <label htmlFor="additional-tests" className={styles.label}>
+          <label className={styles.label}>
             Additional Tests
-            <span className={styles.optionalHint}>(optional — printed on a separate page)</span>
+            <span className={styles.optionalHint}>(optional — each printed on a separate page)</span>
           </label>
-          {additionalTests.trim() && (
-            <button
-              type="button"
-              className={`${styles.dateToggle} ${additionalTestsTomorrow ? styles.dateToggleTmrw : styles.dateToggleToday}`}
-              onClick={() => setAdditionalTestsTomorrow((v) => !v)}
-              title={additionalTestsTomorrow ? 'Tomorrow — click for Today' : 'Today — click for Tomorrow'}
-              disabled={disabled}
-            >
-              {additionalTestsTomorrow ? '+1' : 'T'}
-            </button>
-          )}
         </div>
-        <textarea
-          id="additional-tests"
-          className={styles.textarea}
-          placeholder="e.g. Blood Culture, Urine C&S, D-Dimer"
-          value={additionalTests}
-          onChange={(e) => {
-            setAdditionalTests(e.target.value)
-            setErrors((er) => ({ ...er, tests: undefined }))
-            if (!e.target.value.trim()) setAdditionalTestsTomorrow(false)
-          }}
+        {additionalTests.length > 0 && (
+          <div className={styles.additionalList}>
+            {additionalTests.map((test, idx) => (
+              <div key={idx} className={styles.additionalItem}>
+                <input
+                  type="text"
+                  className={styles.input}
+                  placeholder={`e.g. Blood Culture, Urine C&S`}
+                  value={test}
+                  onChange={(e) => updateAdditionalTest(idx, e.target.value)}
+                  disabled={disabled}
+                />
+                <button
+                  type="button"
+                  className={`${styles.dateToggle} ${additionalTestsTomorrow[idx] ? styles.dateToggleTmrw : styles.dateToggleToday}`}
+                  onClick={() => toggleAdditionalTomorrow(idx)}
+                  title={additionalTestsTomorrow[idx] ? 'Tomorrow — click for Today' : 'Today — click for Tomorrow'}
+                  disabled={disabled}
+                >
+                  {additionalTestsTomorrow[idx] ? '+1' : 'T'}
+                </button>
+                <button
+                  type="button"
+                  className={styles.removeBtn}
+                  onClick={() => removeAdditionalTest(idx)}
+                  disabled={disabled}
+                  aria-label="Remove this additional test"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <button
+          type="button"
+          className={styles.addTestBtn}
+          onClick={addAdditionalTest}
           disabled={disabled}
-          rows={2}
-        />
+          aria-label="Add another additional test"
+        >
+          + Add Test
+        </button>
       </div>
 
       <button

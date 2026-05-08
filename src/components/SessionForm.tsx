@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { SessionData } from '@/types'
 import styles from './SessionForm.module.css'
 
@@ -7,6 +8,13 @@ interface Props {
 }
 
 export function SessionForm({ value, onChange }: Props) {
+  const [wardMode, setWardMode] = useState<'WARD' | 'OPD'>('WARD')
+
+  const handleModeChange = (mode: 'WARD' | 'OPD') => {
+    setWardMode(mode)
+    onChange({ ...value, ward: mode === 'WARD' ? '43' : '27' })
+  }
+
   return (
     <div className={styles.card} role="group" aria-label="Session details">
       <div className={styles.cardHeader}>
@@ -46,19 +54,34 @@ export function SessionForm({ value, onChange }: Props) {
           />
         </div>
         <div className={styles.field}>
-          <label htmlFor="session-ward" className={styles.label}>
-            Ward <span className={styles.required} aria-label="required">*</span>
+          <label className={styles.label}>
+            Location <span className={styles.required} aria-label="required">*</span>
           </label>
+          <div className={styles.toggleGroup}>
+            <button
+              type="button"
+              className={`${styles.toggleBtn} ${wardMode === 'WARD' ? styles.toggleBtnActive : ''}`}
+              onClick={() => handleModeChange('WARD')}
+              aria-pressed={wardMode === 'WARD'}
+            >
+              WARD
+            </button>
+            <button
+              type="button"
+              className={`${styles.toggleBtn} ${wardMode === 'OPD' ? styles.toggleBtnActive : ''}`}
+              onClick={() => handleModeChange('OPD')}
+              aria-pressed={wardMode === 'OPD'}
+            >
+              OPD
+            </button>
+          </div>
           <input
             id="session-ward"
             type="text"
             className={styles.input}
-            placeholder="43"
             value={value.ward}
-            onChange={(e) => onChange({ ...value, ward: e.target.value })}
-            required
-            aria-required="true"
-            autoComplete="off"
+            readOnly
+            aria-label={`${wardMode} number`}
           />
         </div>
       </div>

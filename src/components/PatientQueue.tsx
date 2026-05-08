@@ -54,9 +54,9 @@ export function PatientQueue({ patients, onRemove, totalPages }: Props) {
                       {TEST_MAP.get(testId as never)?.shortLabel ?? testId}
                     </span>
                   ))}
-                  {patient.additionalTests.trim() && (
-                    <span className={styles.tagExtra} role="listitem" title={patient.additionalTests}>
-                      +additional
+                  {patient.additionalTests.length > 0 && (
+                    <span className={styles.tagExtra} role="listitem" title={patient.additionalTests.join(', ')}>
+                      +{patient.additionalTests.length} test{patient.additionalTests.length > 1 ? 's' : ''}
                     </span>
                   )}
                   {patient.vacutainerLabel && (

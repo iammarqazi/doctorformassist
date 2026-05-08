@@ -97,10 +97,11 @@ export async function generateLabPdf(session: SessionData, patients: PatientEntr
       if (duplicate) drawSlip(dateStr, patName, testLabel, ipNo, wardUnit, agGender)
     }
 
-    if (patient.additionalTests.trim()) {
-      const dateStr = patient.additionalTestsTomorrow ? tomorrowDateStr : todayDateStr
-      drawSlip(dateStr, patName, patient.additionalTests.trim(), ipNo, wardUnit, agGender)
-      if (duplicate) drawSlip(dateStr, patName, patient.additionalTests.trim(), ipNo, wardUnit, agGender)
+    for (let idx = 0; idx < patient.additionalTests.length; idx++) {
+      const testLabel = patient.additionalTests[idx]
+      const dateStr   = patient.additionalTestsTomorrow[idx] ? tomorrowDateStr : todayDateStr
+      drawSlip(dateStr, patName, testLabel, ipNo, wardUnit, agGender)
+      if (duplicate) drawSlip(dateStr, patName, testLabel, ipNo, wardUnit, agGender)
     }
   }
 

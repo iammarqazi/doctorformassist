@@ -16,8 +16,8 @@ export function usePatientQueue() {
       vacutainerLabel: boolean,
       tests: TestId[],
       tomorrowTests: TestId[],
-      additionalTests: string,
-      additionalTestsTomorrow: boolean
+      additionalTests: string[],
+      additionalTestsTomorrow: boolean[]
     ) => {
       setPatients((prev) => [
         ...prev,
@@ -45,7 +45,7 @@ export function usePatientQueue() {
   const clearAll = useCallback(() => setPatients([]), [])
 
   const totalPages = patients.reduce((sum, p) => {
-    const base = p.tests.length + (p.additionalTests.trim() ? 1 : 0)
+    const base = p.tests.length + p.additionalTests.length
     return sum + (p.vacutainerLabel ? base * 2 : base)
   }, 0)
 
