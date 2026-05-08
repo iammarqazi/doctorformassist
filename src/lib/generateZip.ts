@@ -17,7 +17,7 @@ export async function generatePdfDownload(
   const pdfBytes = await generateLabPdf(session, patients)
   const blob = new Blob([pdfBytes], { type: 'application/pdf' })
   const pageCount = patients.reduce((sum, p) => {
-    const base = p.tests.length + (p.additionalTests.trim() ? 1 : 0)
+    const base = p.tests.length + p.additionalTests.length
     return sum + (p.vacutainerLabel ? base * 2 : base)
   }, 0)
   return { blob, pageCount }
