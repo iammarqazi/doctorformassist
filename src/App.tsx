@@ -11,7 +11,7 @@ import styles from './App.module.css'
 const today = new Date().toISOString().slice(0, 10)
 
 export default function App() {
-  const [session, setSession] = useState<SessionData>({ date: today, unit: 'HRB', ward: '43' })
+  const [session, setSession] = useState<SessionData>({ date: today, unit: 'HRB', ward: '43', locationType: 'WARD' })
   const { patients, addPatient, removePatient, clearAll, totalPages } = usePatientQueue()
   const { state: dlState, error: dlError, download } = useDownload()
 

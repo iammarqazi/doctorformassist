@@ -81,7 +81,7 @@ export async function generateLabPdf(session: SessionData, patients: PatientEntr
 
   const todayDateStr    = formatDate(session.date)
   const tomorrowDateStr = formatDate(addOneDay(session.date))
-  const wardUnit        = session.ward === '27' ? `OPD ${session.ward}/ ${session.unit}` : `Ward ${session.ward}/ ${session.unit}`
+  const wardUnit        = session.locationType === 'OPD' ? `OPD ${session.ward}/ ${session.unit}` : `Ward ${session.ward}/ ${session.unit}`
 
   for (const patient of patients) {
     const agGender  = `${patient.age}/ ${patient.gender.toUpperCase()}`

@@ -26,6 +26,7 @@ export interface SessionData {
   date: string
   unit: string
   ward: string
+  locationType: 'WARD' | 'OPD'
 }
 
 export interface PatientEntry {

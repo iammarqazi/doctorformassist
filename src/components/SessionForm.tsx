@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { SessionData } from '@/types'
 import styles from './SessionForm.module.css'
 
@@ -8,11 +8,26 @@ interface Props {
 }
 
 export function SessionForm({ value, onChange }: Props) {
-  const [wardMode, setWardMode] = useState<'WARD' | 'OPD'>('WARD')
+  const [wardMode, setWardMode] = useState<'WARD' | 'OPD'>(value.locationType || 'WARD')
+
+  useEffect(() => {
+    setWardMode(value.locationType || 'WARD')
+  }, [value.locationType])
 
   const handleModeChange = (mode: 'WARD' | 'OPD') => {
     setWardMode(mode)
-    onChange({ ...value, ward: mode === 'WARD' ? '43' : '27' })
+    const defaultValue = mode === 'WARD' ? '43' : '27'
+    // Only set default if ward is currently the other mode's default, otherwise keep user's value
+    if ((mode === 'WARD' && value.ward === '27') || (mode === 'OPD' && value.ward === '43')) {
+      onChange({ ...value, ward: defaultValue, locationType: mode })
+    } else {
+      onChange({ ...value, locationType: mode })
+    }
+  }
+
+  const handleWardChange = (newValue: string) => {
+    const sanitized = newValue.replace(/\D/g, '').slice(0, 3)
+    onChange({ ...value, ward: sanitized })
   }
 
   return (
@@ -78,9 +93,12 @@ export function SessionForm({ value, onChange }: Props) {
           <input
             id="session-ward"
             type="text"
+            inputMode="numeric"
             className={styles.input}
+            placeholder={wardMode === 'WARD' ? '43' : '27'}
             value={value.ward}
-            readOnly
+            onChange={(e) => handleWardChange(e.target.value)}
+            maxLength={3}
             aria-label={`${wardMode} number`}
           />
         </div>
