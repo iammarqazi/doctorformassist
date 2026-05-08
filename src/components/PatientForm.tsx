@@ -190,7 +190,7 @@ export function PatientForm({ onAdd, disabled }: Props) {
 
         <div className={styles.subField}>
           <label htmlFor="patient-ipno" className={styles.label}>
-            Inpatient No.
+            Inpatient/Outpatient No.
           </label>
           <input
             id="patient-ipno"
