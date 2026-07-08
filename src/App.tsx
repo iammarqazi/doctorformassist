@@ -33,13 +33,17 @@ export default function App() {
             <span className={styles.logoText}>DoctorFormAssist</span>
           </div>
           <nav className={styles.headerRight}>
-            <a
-              href="https://www.doctorformassist.com"
-              className={styles.domain}
-              aria-label="DoctorFormAssist home"
+            <button
+              className={styles.logoutBtn}
+              onClick={() => {
+                localStorage.removeItem('dfa_license_key')
+                localStorage.removeItem('dfa_license_expiry')
+                window.location.href = '/'
+              }}
+              title="Sign out / manage license"
             >
-              www.doctorformassist.com
-            </a>
+              Sign out
+            </button>
           </nav>
         </div>
       </header>
