@@ -7,9 +7,5 @@ binding       = "DB"
 database_name = "doctorformassist-db"
 database_id   = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
 
-[vars]
-# Public Razorpay key — safe to commit
-RAZORPAY_KEY_ID = "rzp_live_REPLACE_WITH_YOUR_KEY_ID"
-
-# Secret must NEVER be committed — set it with:
-#   wrangler pages secret put RAZORPAY_KEY_SECRET
+# ADMIN_SECRET must NEVER be committed — set it with:
+#   wrangler pages secret put ADMIN_SECRET
