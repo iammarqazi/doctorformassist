@@ -92,7 +92,18 @@ export function LandingPage({ onActivated }: LandingPageProps) {
       <>
         <div className={styles.upiCard}>
           <div className={styles.qrCol}>
-            <img src="/gpay-qr.png" alt="Google Pay QR code" className={styles.qrImg} width={200} height={200} />
+            <img
+              src="/gpay-qr.png"
+              alt="Payment QR code"
+              className={styles.qrImg}
+              width={200}
+              height={200}
+              onError={e => {
+                const img = e.currentTarget
+                const fallback = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiLink)}`
+                if (img.src !== fallback) img.src = fallback
+              }}
+            />
             <p className={styles.qrHint}>Scan with any UPI app</p>
           </div>
           <div className={styles.upiCol}>
