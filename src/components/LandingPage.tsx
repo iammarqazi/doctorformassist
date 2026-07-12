@@ -2,13 +2,13 @@ import { useState, useRef, useEffect } from 'react'
 import { getOrCreateDeviceId } from '@/hooks/useAccess'
 import styles from './LandingPage.module.css'
 
-const UPI_ID   = import.meta.env.VITE_UPI_ID   || 'your-upi-id@upi'
-const UPI_NAME = import.meta.env.VITE_UPI_NAME || 'DoctorFormAssist'
-const WA_NUM   = import.meta.env.VITE_WHATSAPP || '919999999999'
-const AMOUNT   = 365
+const UPI_ID = import.meta.env.VITE_UPI_ID   || ''
+const WA_NUM = import.meta.env.VITE_WHATSAPP || '919999999999'
+const AMOUNT = 365
 
-const upiLink = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(UPI_NAME)}&am=${AMOUNT}&cu=INR&tn=DoctorFormAssist+Annual`
-const qrSrc   = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&color=4fc3f7&bgcolor=161b24&data=${encodeURIComponent(upiLink)}`
+const upiLink = UPI_ID
+  ? `upi://pay?pa=${UPI_ID}&pn=DoctorFormAssist&am=${AMOUNT}&cu=INR&tn=DoctorFormAssist+Annual`
+  : '#'
 
 type CheckState =
   | 'idle'        // waiting for email input
@@ -23,21 +23,33 @@ interface LandingPageProps {
 }
 
 export function LandingPage({ onActivated }: LandingPageProps) {
-  const [email,    setEmail]    = useState('')
-  const [state,    setState]    = useState<CheckState>('idle')
-  const [errMsg,   setErrMsg]   = useState('')
-  const [copied,   setCopied]   = useState(false)
-  const deviceId                = useRef(getOrCreateDeviceId())
-  const payRef                  = useRef<HTMLDivElement>(null)
-  const emailInputRef           = useRef<HTMLInputElement>(null)
+  const [email,           setEmail]           = useState('')
+  const [state,           setState]           = useState<CheckState>('idle')
+  const [errMsg,          setErrMsg]          = useState('')
+  const [copied,          setCopied]          = useState(false)
+  const [screenshot,      setScreenshot]      = useState<File | null>(null)
+  const [screenshotUrl,   setScreenshotUrl]   = useState<string | null>(null)
+  const deviceId    = useRef(getOrCreateDeviceId())
+  const payRef      = useRef<HTMLDivElement>(null)
+  const emailRef    = useRef<HTMLInputElement>(null)
+  const fileRef     = useRef<HTMLInputElement>(null)
 
-  // Auto-check if returning user has email stored
-  useEffect(() => { emailInputRef.current?.focus() }, [])
+  useEffect(() => { emailRef.current?.focus() }, [])
+
+  function handleScreenshot(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (screenshotUrl) URL.revokeObjectURL(screenshotUrl)
+    setScreenshot(file)
+    setScreenshotUrl(URL.createObjectURL(file))
+  }
 
   async function checkAccess() {
     const e = email.trim().toLowerCase()
     if (!e || !e.includes('@')) { setErrMsg('Enter a valid email address.'); return }
     setErrMsg('')
+    setScreenshot(null)
+    setScreenshotUrl(null)
     setState('checking')
     try {
       const res  = await fetch(
@@ -71,8 +83,85 @@ export function LandingPage({ onActivated }: LandingPageProps) {
     const e   = email.trim()
     const msg = forNewDevice
       ? `Hi, I need to add a new device to DoctorFormAssist.\nEmail: ${e}\nDevice ID: ${deviceId.current}`
-      : `Hi, I've paid ₹${AMOUNT} for DoctorFormAssist. Please activate my account.\nEmail: ${e}\nDevice ID: ${deviceId.current}`
+      : `Hi, I've paid ₹${AMOUNT} for DoctorFormAssist. Please activate my account.\nEmail: ${e}\nDevice ID: ${deviceId.current}\n\n(Payment screenshot attached)`
     window.open(`https://wa.me/${WA_NUM}?text=${encodeURIComponent(msg)}`, '_blank')
+  }
+
+  function UpiPaymentPanel({ forRenewal = false }: { forRenewal?: boolean }) {
+    return (
+      <>
+        <div className={styles.upiCard}>
+          <div className={styles.qrCol}>
+            <img src="/gpay-qr.png" alt="Google Pay QR code" className={styles.qrImg} width={200} height={200} />
+            <p className={styles.qrHint}>Scan with any UPI app</p>
+          </div>
+          <div className={styles.upiCol}>
+            <div className={styles.upiField}>
+              <span className={styles.upiFieldLabel}>UPI ID</span>
+              <div className={styles.upiFieldRow}>
+                <code className={styles.upiId}>{UPI_ID || 'drhibakazi@okaxis'}</code>
+                <button className={styles.copyBtn} onClick={copyUpi}>{copied ? '✔ Copied' : 'Copy'}</button>
+              </div>
+            </div>
+            <div className={styles.upiField}>
+              <span className={styles.upiFieldLabel}>Amount</span>
+              <span className={styles.upiAmount}>₹{AMOUNT} <span className={styles.upiAmountSub}>/ year</span></span>
+            </div>
+            <a className={styles.upiAppLink} href={upiLink}>Open in UPI app →</a>
+          </div>
+        </div>
+
+        <div className={styles.divider} />
+
+        {/* Screenshot upload */}
+        <div className={styles.screenshotSection}>
+          <p className={styles.screenshotLabel}>
+            Step 2 — Upload your payment screenshot
+          </p>
+          <label className={styles.screenshotDrop} onClick={() => fileRef.current?.click()}>
+            {screenshotUrl
+              ? <img src={screenshotUrl} className={styles.screenshotPreview} alt="Payment screenshot" />
+              : (
+                <div className={styles.screenshotPlaceholder}>
+                  <span className={styles.screenshotIcon}>📎</span>
+                  <span>Tap to select screenshot</span>
+                  <span className={styles.screenshotHint}>JPG, PNG or any image from your gallery</span>
+                </div>
+              )
+            }
+          </label>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className={styles.fileInputHidden}
+            onChange={handleScreenshot}
+          />
+          {screenshot && (
+            <p className={styles.screenshotReady}>
+              ✔ Screenshot selected — it will be attached in WhatsApp
+            </p>
+          )}
+        </div>
+
+        <button
+          className={styles.whatsappBtn}
+          onClick={() => openWhatsApp(false)}
+          disabled={!screenshot}
+          title={!screenshot ? 'Upload payment screenshot first' : ''}
+        >
+          ✓ &nbsp; {forRenewal ? "I've renewed" : "I've paid"} — send proof via WhatsApp
+        </button>
+        {!screenshot && (
+          <p className={styles.whatsappNote}>Upload your payment screenshot above to continue.</p>
+        )}
+        {screenshot && (
+          <p className={styles.whatsappNote}>
+            WhatsApp will open — attach the screenshot and hit send. We'll activate you within a few hours.
+          </p>
+        )}
+      </>
+    )
   }
 
   return (
@@ -167,7 +256,7 @@ export function LandingPage({ onActivated }: LandingPageProps) {
             <div className={styles.gateRow}>
               <input
                 id="gate-email"
-                ref={emailInputRef}
+                ref={emailRef}
                 type="email"
                 className={styles.gateInput}
                 placeholder="doctor@hospital.com"
@@ -195,36 +284,10 @@ export function LandingPage({ onActivated }: LandingPageProps) {
               <p className={styles.resultTitle}>
                 <span className={styles.emailChip}>{email.trim()}</span> isn't registered yet.
               </p>
-              <p className={styles.resultSub}>Pay ₹{AMOUNT}/year via UPI, then send us a WhatsApp and we'll activate your account.</p>
-
-              <div className={styles.upiCard}>
-                <div className={styles.qrCol}>
-                  <img src={qrSrc} alt="UPI QR code" className={styles.qrImg} width={200} height={200} />
-                  <p className={styles.qrHint}>Scan with any UPI app</p>
-                </div>
-
-                <div className={styles.upiCol}>
-                  <div className={styles.upiField}>
-                    <span className={styles.upiFieldLabel}>UPI ID</span>
-                    <div className={styles.upiFieldRow}>
-                      <code className={styles.upiId}>{UPI_ID}</code>
-                      <button className={styles.copyBtn} onClick={copyUpi}>{copied ? '✔ Copied' : 'Copy'}</button>
-                    </div>
-                  </div>
-                  <div className={styles.upiField}>
-                    <span className={styles.upiFieldLabel}>Amount</span>
-                    <span className={styles.upiAmount}>₹{AMOUNT} <span className={styles.upiAmountSub}>/ year</span></span>
-                  </div>
-                  <a className={styles.upiAppLink} href={upiLink}>Open in UPI app →</a>
-                  <div className={styles.divider} />
-                  <button className={styles.whatsappBtn} onClick={() => openWhatsApp(false)}>
-                    ✓ &nbsp; I've paid — notify via WhatsApp
-                  </button>
-                  <p className={styles.whatsappNote}>
-                    We'll activate your device within a few hours and you'll be able to log in with just your email.
-                  </p>
-                </div>
-              </div>
+              <p className={styles.resultSub}>
+                Step 1 — Pay ₹{AMOUNT}/year via UPI, then upload your screenshot and send us a WhatsApp.
+              </p>
+              <UpiPaymentPanel />
             </div>
           )}
 
@@ -250,19 +313,12 @@ export function LandingPage({ onActivated }: LandingPageProps) {
           {state === 'expired' && (
             <div className={styles.resultPanel} ref={payRef}>
               <p className={styles.resultTitle}>
-                Your subscription for <span className={styles.emailChip}>{email.trim()}</span> has expired.
+                Subscription expired for <span className={styles.emailChip}>{email.trim()}</span>.
               </p>
-              <p className={styles.resultSub}>Pay ₹{AMOUNT} to renew, then send a WhatsApp — we'll extend your access.</p>
-              <div className={styles.upiField}>
-                <span className={styles.upiFieldLabel}>UPI ID</span>
-                <div className={styles.upiFieldRow}>
-                  <code className={styles.upiId}>{UPI_ID}</code>
-                  <button className={styles.copyBtn} onClick={copyUpi}>{copied ? '✔ Copied' : 'Copy'}</button>
-                </div>
-              </div>
-              <button className={styles.whatsappBtn} onClick={() => openWhatsApp(false)} style={{ marginTop: '1rem' }}>
-                ✓ &nbsp; I've renewed — notify via WhatsApp
-              </button>
+              <p className={styles.resultSub}>
+                Pay ₹{AMOUNT} to renew, upload the screenshot, and send us a WhatsApp — we'll extend your access.
+              </p>
+              <UpiPaymentPanel forRenewal />
             </div>
           )}
         </div>
