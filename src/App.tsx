@@ -36,8 +36,8 @@ export default function App() {
             <button
               className={styles.logoutBtn}
               onClick={() => {
-                localStorage.removeItem('dfa_license_key')
-                localStorage.removeItem('dfa_license_expiry')
+                localStorage.removeItem('dfa_email')
+                localStorage.removeItem('dfa_expiry')
                 window.location.href = '/'
               }}
               title="Sign out / manage license"

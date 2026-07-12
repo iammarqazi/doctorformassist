@@ -1,67 +1,83 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { getOrCreateDeviceId } from '@/hooks/useAccess'
 import styles from './LandingPage.module.css'
 
-const UPI_ID   = import.meta.env.VITE_UPI_ID    || 'your-upi-id@upi'
-const UPI_NAME = import.meta.env.VITE_UPI_NAME  || 'DoctorFormAssist'
-const WA_NUM   = import.meta.env.VITE_WHATSAPP  || '919999999999'
+const UPI_ID   = import.meta.env.VITE_UPI_ID   || 'your-upi-id@upi'
+const UPI_NAME = import.meta.env.VITE_UPI_NAME || 'DoctorFormAssist'
+const WA_NUM   = import.meta.env.VITE_WHATSAPP || '919999999999'
 const AMOUNT   = 365
 
-const upiLink  = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(UPI_NAME)}&am=${AMOUNT}&cu=INR&tn=DoctorFormAssist+Annual`
-const qrSrc    = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&color=4fc3f7&bgcolor=161b24&data=${encodeURIComponent(upiLink)}`
+const upiLink = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(UPI_NAME)}&am=${AMOUNT}&cu=INR&tn=DoctorFormAssist+Annual`
+const qrSrc   = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&color=4fc3f7&bgcolor=161b24&data=${encodeURIComponent(upiLink)}`
+
+type CheckState =
+  | 'idle'        // waiting for email input
+  | 'checking'    // API call in flight
+  | 'not_found'   // new email — show payment section
+  | 'new_device'  // email exists but this device not registered
+  | 'expired'     // subscription lapsed
+  | 'error'
 
 interface LandingPageProps {
   onActivated: () => void
 }
 
 export function LandingPage({ onActivated }: LandingPageProps) {
-  const [email, setEmail]           = useState('')
-  const [copied, setCopied]         = useState(false)
-  const [showLogin, setShowLogin]   = useState(false)
-  const [loginKey, setLoginKey]     = useState('')
-  const [loginErr, setLoginErr]     = useState('')
-  const [loginLoading, setLoginLoading] = useState(false)
-  const payRef = useRef<HTMLElement>(null)
+  const [email,    setEmail]    = useState('')
+  const [state,    setState]    = useState<CheckState>('idle')
+  const [errMsg,   setErrMsg]   = useState('')
+  const [copied,   setCopied]   = useState(false)
+  const deviceId                = useRef(getOrCreateDeviceId())
+  const payRef                  = useRef<HTMLDivElement>(null)
+  const emailInputRef           = useRef<HTMLInputElement>(null)
 
-  const scrollToPay = () => payRef.current?.scrollIntoView({ behavior: 'smooth' })
+  // Auto-check if returning user has email stored
+  useEffect(() => { emailInputRef.current?.focus() }, [])
+
+  async function checkAccess() {
+    const e = email.trim().toLowerCase()
+    if (!e || !e.includes('@')) { setErrMsg('Enter a valid email address.'); return }
+    setErrMsg('')
+    setState('checking')
+    try {
+      const res  = await fetch(
+        `/api/check-access?email=${encodeURIComponent(e)}&device=${encodeURIComponent(deviceId.current)}`
+      )
+      const data = await res.json() as { status: string; expires_at?: number }
+
+      if (data.status === 'approved') {
+        localStorage.setItem('dfa_email',  e)
+        localStorage.setItem('dfa_expiry', String(data.expires_at ?? 0))
+        onActivated()
+        return
+      }
+      setState(data.status as CheckState)
+      if (data.status === 'not_found' || data.status === 'new_device') {
+        setTimeout(() => payRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+      }
+    } catch {
+      setErrMsg('Could not connect. Check your internet and try again.')
+      setState('error')
+    }
+  }
 
   function copyUpi() {
     navigator.clipboard.writeText(UPI_ID).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      setCopied(true); setTimeout(() => setCopied(false), 2000)
     })
   }
 
-  function openWhatsApp() {
-    const msg = email.trim()
-      ? `Hi, I've paid ₹${AMOUNT} for DoctorFormAssist. My email: ${email.trim()}`
-      : `Hi, I've paid ₹${AMOUNT} for DoctorFormAssist. My email: `
+  function openWhatsApp(forNewDevice = false) {
+    const e   = email.trim()
+    const msg = forNewDevice
+      ? `Hi, I need to add a new device to DoctorFormAssist.\nEmail: ${e}\nDevice ID: ${deviceId.current}`
+      : `Hi, I've paid ₹${AMOUNT} for DoctorFormAssist. Please activate my account.\nEmail: ${e}\nDevice ID: ${deviceId.current}`
     window.open(`https://wa.me/${WA_NUM}?text=${encodeURIComponent(msg)}`, '_blank')
-  }
-
-  async function handleLogin() {
-    const key = loginKey.trim().toUpperCase()
-    if (!key) return
-    setLoginLoading(true)
-    setLoginErr('')
-    try {
-      const res  = await fetch(`/api/check-license?key=${encodeURIComponent(key)}`)
-      const data = await res.json() as { valid: boolean; expires_at?: number }
-      if (data.valid) {
-        localStorage.setItem('dfa_license_key',    key)
-        localStorage.setItem('dfa_license_expiry', String(data.expires_at ?? 0))
-        onActivated()
-      } else {
-        setLoginErr('Invalid or expired key. Check the WhatsApp message we sent you.')
-      }
-    } catch {
-      setLoginErr('Could not verify key — check your internet connection.')
-    } finally {
-      setLoginLoading(false)
-    }
   }
 
   return (
     <div className={styles.page}>
+
       {/* ── Nav ──────────────────────────────────────── */}
       <header className={styles.nav}>
         <div className={styles.navInner}>
@@ -69,52 +85,24 @@ export function LandingPage({ onActivated }: LandingPageProps) {
             <span className={styles.logoMark}>✚</span>
             <span className={styles.logoText}>DoctorFormAssist</span>
           </div>
-          <button className={styles.navLink} onClick={() => setShowLogin(v => !v)}>
-            I have a license key
-          </button>
+          <a className={styles.navLink} href="#access">Get Access</a>
         </div>
-
-        {showLogin && (
-          <div className={styles.loginBar}>
-            <div className={styles.loginBarInner}>
-              <input
-                className={styles.keyInput}
-                placeholder="XXXXX-XXXXX-XXXXX-XXXXX"
-                value={loginKey}
-                onChange={e => setLoginKey(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleLogin()}
-                spellCheck={false}
-                aria-label="License key"
-              />
-              <button
-                className={styles.ctaSmall}
-                onClick={handleLogin}
-                disabled={loginLoading || !loginKey.trim()}
-              >
-                {loginLoading ? '…' : 'Activate →'}
-              </button>
-            </div>
-            {loginErr && <p className={styles.loginErr}>{loginErr}</p>}
-          </div>
-        )}
       </header>
 
       {/* ── Hero ─────────────────────────────────────── */}
       <section className={styles.hero}>
-        <div className={styles.heroBadge}>Zero signup · Pay once · Works instantly</div>
+        <div className={styles.heroBadge}>Zero signup · Works instantly · ₹1 / day</div>
         <h1 className={styles.heroTitle}>
           Lab Requisition PDFs<br />
-          <span className={styles.heroAccent}>in seconds — ₹1 / day</span>
+          <span className={styles.heroAccent}>in seconds</span>
         </h1>
         <p className={styles.heroSub}>
           Set session details once, bulk-add patients, download all pages as one PDF.
           Everything runs in your browser — patient data never leaves your device.
         </p>
         <div className={styles.heroCtas}>
-          <button className={styles.ctaPrimary} onClick={scrollToPay}>
-            Pay ₹{AMOUNT} via UPI →
-          </button>
-          <a className={styles.ctaGhost} href="#features">See features</a>
+          <a className={styles.ctaPrimary} href="#access">Get Access — ₹{AMOUNT}/year →</a>
+          <a className={styles.ctaGhost}   href="#features">See features</a>
         </div>
         <div className={styles.heroBullets}>
           <span>✔ No patient data ever uploaded</span>
@@ -125,14 +113,14 @@ export function LandingPage({ onActivated }: LandingPageProps) {
 
       {/* ── Features ─────────────────────────────────── */}
       <section className={styles.features} id="features">
-        <div className={styles.sectionInner}>
+        <div className={styles.inner}>
           <h2 className={styles.sectionTitle}>Everything you need, nothing you don't</h2>
           <div className={styles.featureGrid}>
             {[
-              { icon: '🔒', title: '100% Private',     body: 'PDF generation happens entirely in your browser. Patient names, tests, and ward numbers never touch a server.' },
-              { icon: '⚡', title: 'Bulk Patient Entry', body: 'Add a full ward in minutes. Set the session once, then zip through each patient with auto-test-selection.' },
+              { icon: '🔒', title: '100% Private',      body: 'PDF generation happens entirely in your browser. Patient names, tests, and ward numbers never touch a server.' },
+              { icon: '⚡', title: 'Bulk Entry',         body: 'Add a full ward in minutes. Set the session once, then zip through each patient with auto-test-selection.' },
               { icon: '📄', title: 'One PDF, All Pages', body: 'Every patient gets their own page. Download them all as a single, print-ready PDF with one click.' },
-              { icon: '🏥', title: 'Ward & OPD Support', body: 'Toggle between inpatient ward numbers and OPD. The form label switches automatically on the PDF.' },
+              { icon: '🏥', title: 'Ward & OPD',         body: 'Toggle between inpatient ward numbers and OPD. The form label switches automatically on the PDF.' },
             ].map(f => (
               <div key={f.title} className={styles.featureCard}>
                 <span className={styles.featureIcon}>{f.icon}</span>
@@ -145,14 +133,14 @@ export function LandingPage({ onActivated }: LandingPageProps) {
       </section>
 
       {/* ── How it works ─────────────────────────────── */}
-      <section className={styles.howItWorks}>
-        <div className={styles.sectionInner}>
+      <section className={styles.howSection}>
+        <div className={styles.inner}>
           <h2 className={styles.sectionTitle}>How to get access</h2>
           <div className={styles.steps}>
             {[
-              { n: '1', title: 'Pay ₹365 via UPI',    body: 'Scan the QR code or copy the UPI ID below. Pay exactly ₹365 from any UPI app.' },
-              { n: '2', title: "Click 'I've paid'",   body: "WhatsApp opens with a pre-filled message. Just add your email and send it." },
-              { n: '3', title: 'Receive your key',    body: "We'll reply with your license key on WhatsApp, usually within a few hours." },
+              { n: '1', title: 'Pay ₹365 via UPI',   body: 'Scan the QR code or copy the UPI ID below. Pay ₹365 from any UPI app — PhonePe, GPay, Paytm, etc.' },
+              { n: '2', title: "Tap 'I've paid'",     body: "WhatsApp opens with your email and device ID pre-filled. Just hit send." },
+              { n: '3', title: 'You\'re in',          body: 'We approve your device within a few hours. Come back, enter your email, and you\'re in — no key needed.' },
             ].map(s => (
               <div key={s.n} className={styles.stepCard}>
                 <div className={styles.stepNum}>{s.n}</div>
@@ -164,100 +152,126 @@ export function LandingPage({ onActivated }: LandingPageProps) {
         </div>
       </section>
 
-      {/* ── Pay via UPI ──────────────────────────────── */}
-      <section className={styles.paySection} ref={payRef} id="pay">
-        <div className={styles.sectionInner}>
-          <h2 className={styles.sectionTitle}>Pay ₹{AMOUNT} / year via UPI</h2>
-          <p className={styles.paySub}>≈ ₹1 per day · 1 year access · Any UPI app accepted</p>
+      {/* ── Access gate ──────────────────────────────── */}
+      <section className={styles.accessSection} id="access">
+        <div className={styles.inner}>
+          <h2 className={styles.sectionTitle}>Get Access</h2>
 
-          <div className={styles.upiCard}>
-            {/* QR */}
-            <div className={styles.qrWrap}>
-              <img
-                src={qrSrc}
-                alt="UPI QR code"
-                className={styles.qrImg}
-                width={220}
-                height={220}
-              />
-              <p className={styles.qrHint}>Scan with any UPI app</p>
-            </div>
-
-            {/* Details */}
-            <div className={styles.upiDetails}>
-              <div className={styles.upiRow}>
-                <span className={styles.upiLabel}>UPI ID</span>
-                <div className={styles.upiValueRow}>
-                  <code className={styles.upiId}>{UPI_ID}</code>
-                  <button className={styles.copyBtn} onClick={copyUpi}>
-                    {copied ? '✔ Copied' : 'Copy'}
-                  </button>
-                </div>
-              </div>
-
-              <div className={styles.upiRow}>
-                <span className={styles.upiLabel}>Amount</span>
-                <span className={styles.upiValue}>₹{AMOUNT}</span>
-              </div>
-
-              {/* Mobile UPI deeplink */}
-              <a className={styles.upiAppBtn} href={upiLink}>
-                Open in UPI app
-              </a>
-
-              <div className={styles.divider} />
-
-              <p className={styles.whatsappLabel}>Enter your email, then send us a WhatsApp</p>
+          {/* Email input — always visible */}
+          <div className={styles.emailGate}>
+            <label className={styles.gateLabel} htmlFor="gate-email">
+              {state === 'idle' || state === 'error'
+                ? 'Enter your email to check or register:'
+                : `Checking access for:`}
+            </label>
+            <div className={styles.gateRow}>
               <input
+                id="gate-email"
+                ref={emailInputRef}
                 type="email"
-                className={styles.emailInput}
+                className={styles.gateInput}
                 placeholder="doctor@hospital.com"
                 value={email}
-                onChange={e => setEmail(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && openWhatsApp()}
-              />
-              <button className={styles.whatsappBtn} onClick={openWhatsApp}>
-                <span className={styles.waBubble}>✓</span>
-                I've paid — notify via WhatsApp →
-              </button>
-              <p className={styles.whatsappNote}>
-                We'll reply with your license key, usually within a few hours.
-              </p>
-            </div>
-          </div>
-
-          {/* License key entry */}
-          <div className={styles.keySection}>
-            <p className={styles.keyPrompt}>Already have your license key?</p>
-            <div className={styles.keyRow}>
-              <input
-                className={styles.keyInput}
-                placeholder="XXXXX-XXXXX-XXXXX-XXXXX"
-                value={loginKey}
-                onChange={e => setLoginKey(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleLogin()}
-                spellCheck={false}
-                aria-label="License key"
+                onChange={e => { setEmail(e.target.value); setState('idle'); setErrMsg('') }}
+                onKeyDown={e => e.key === 'Enter' && checkAccess()}
+                disabled={state === 'checking'}
               />
               <button
-                className={styles.ctaSmall}
-                onClick={handleLogin}
-                disabled={loginLoading || !loginKey.trim()}
+                className={styles.ctaPrimarySmall}
+                onClick={checkAccess}
+                disabled={state === 'checking' || !email.trim()}
               >
-                {loginLoading ? '…' : 'Activate →'}
+                {state === 'checking' ? '…' : 'Check →'}
               </button>
             </div>
-            {loginErr && <p className={styles.loginErr}>{loginErr}</p>}
+            {errMsg && <p className={styles.errMsg}>{errMsg}</p>}
           </div>
+
+          {/* ── Result panels ──────────────────────────── */}
+
+          {/* New user — show payment */}
+          {state === 'not_found' && (
+            <div className={styles.resultPanel} ref={payRef}>
+              <p className={styles.resultTitle}>
+                <span className={styles.emailChip}>{email.trim()}</span> isn't registered yet.
+              </p>
+              <p className={styles.resultSub}>Pay ₹{AMOUNT}/year via UPI, then send us a WhatsApp and we'll activate your account.</p>
+
+              <div className={styles.upiCard}>
+                <div className={styles.qrCol}>
+                  <img src={qrSrc} alt="UPI QR code" className={styles.qrImg} width={200} height={200} />
+                  <p className={styles.qrHint}>Scan with any UPI app</p>
+                </div>
+
+                <div className={styles.upiCol}>
+                  <div className={styles.upiField}>
+                    <span className={styles.upiFieldLabel}>UPI ID</span>
+                    <div className={styles.upiFieldRow}>
+                      <code className={styles.upiId}>{UPI_ID}</code>
+                      <button className={styles.copyBtn} onClick={copyUpi}>{copied ? '✔ Copied' : 'Copy'}</button>
+                    </div>
+                  </div>
+                  <div className={styles.upiField}>
+                    <span className={styles.upiFieldLabel}>Amount</span>
+                    <span className={styles.upiAmount}>₹{AMOUNT} <span className={styles.upiAmountSub}>/ year</span></span>
+                  </div>
+                  <a className={styles.upiAppLink} href={upiLink}>Open in UPI app →</a>
+                  <div className={styles.divider} />
+                  <button className={styles.whatsappBtn} onClick={() => openWhatsApp(false)}>
+                    ✓ &nbsp; I've paid — notify via WhatsApp
+                  </button>
+                  <p className={styles.whatsappNote}>
+                    We'll activate your device within a few hours and you'll be able to log in with just your email.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Known email, new device */}
+          {state === 'new_device' && (
+            <div className={styles.resultPanel} ref={payRef}>
+              <p className={styles.resultTitle}>
+                <span className={styles.emailChip}>{email.trim()}</span> is registered — but not on this device.
+              </p>
+              <p className={styles.resultSub}>
+                Send us a WhatsApp to add this browser. We'll approve it within a few hours.
+              </p>
+              <button className={styles.whatsappBtn} onClick={() => openWhatsApp(true)}>
+                ✓ &nbsp; Request device access via WhatsApp
+              </button>
+              <p className={styles.whatsappNote}>
+                Each WhatsApp message includes your device ID automatically — no manual copying needed.
+              </p>
+            </div>
+          )}
+
+          {/* Expired */}
+          {state === 'expired' && (
+            <div className={styles.resultPanel} ref={payRef}>
+              <p className={styles.resultTitle}>
+                Your subscription for <span className={styles.emailChip}>{email.trim()}</span> has expired.
+              </p>
+              <p className={styles.resultSub}>Pay ₹{AMOUNT} to renew, then send a WhatsApp — we'll extend your access.</p>
+              <div className={styles.upiField}>
+                <span className={styles.upiFieldLabel}>UPI ID</span>
+                <div className={styles.upiFieldRow}>
+                  <code className={styles.upiId}>{UPI_ID}</code>
+                  <button className={styles.copyBtn} onClick={copyUpi}>{copied ? '✔ Copied' : 'Copy'}</button>
+                </div>
+              </div>
+              <button className={styles.whatsappBtn} onClick={() => openWhatsApp(false)} style={{ marginTop: '1rem' }}>
+                ✓ &nbsp; I've renewed — notify via WhatsApp
+              </button>
+            </div>
+          )}
         </div>
       </section>
 
       {/* ── Footer ───────────────────────────────────── */}
       <footer className={styles.footer}>
         <p>DoctorFormAssist &copy; {new Date().getFullYear()}</p>
-        <p className={styles.footerSub}>
-          PDF generation runs 100% in your browser · No patient data ever uploaded
-        </p>
+        <p className={styles.footerSub}>PDF generation runs 100% in your browser · No patient data ever uploaded</p>
       </footer>
     </div>
   )

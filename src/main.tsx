@@ -8,14 +8,11 @@ function Root() {
   const path = window.location.pathname
 
   if (path.startsWith('/app')) {
-    const key    = localStorage.getItem('dfa_license_key')
-    const expiry = localStorage.getItem('dfa_license_expiry')
-    const valid  = key && expiry && parseInt(expiry, 10) > Math.floor(Date.now() / 1000)
+    const email  = localStorage.getItem('dfa_email')
+    const expiry = localStorage.getItem('dfa_expiry')
+    const valid  = email && expiry && parseInt(expiry, 10) > Math.floor(Date.now() / 1000)
 
-    if (!valid) {
-      window.location.replace('/')
-      return null
-    }
+    if (!valid) { window.location.replace('/'); return null }
 
     return <App />
   }
@@ -24,7 +21,5 @@ function Root() {
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <Root />
-  </React.StrictMode>
+  <React.StrictMode><Root /></React.StrictMode>
 )
