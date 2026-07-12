@@ -5,7 +5,7 @@ compatibility_date    = "2024-01-01"
 [[d1_databases]]
 binding       = "DB"
 database_name = "doctorformassist-db"
-database_id   = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+database_id   = "07c8de17-3d13-4453-a2ec-f70b8a09cb69"
 
 # ADMIN_SECRET must NEVER be committed — set it with:
 #   wrangler pages secret put ADMIN_SECRET
