@@ -205,6 +205,11 @@ export function LandingPage({ onActivated }: LandingPageProps) {
           <div className={styles.logo}>
             <span className={styles.logoMark}>✚</span>
             <span className={styles.logoText}>DoctorFormAssist</span>
+            <span className={styles.navDivider} />
+            <div className={styles.poweredBy}>
+              <span className={styles.poweredByLabel}>An initiative by</span>
+              <img src="/mediteasy-logo.png" alt="MED it Easy" className={styles.poweredByLogo} />
+            </div>
           </div>
           <a className={styles.navLink} href="#access">Get Access</a>
         </div>
