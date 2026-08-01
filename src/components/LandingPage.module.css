@@ -88,6 +88,15 @@
   margin-bottom: 2rem; text-align: center;
 }
 
+/* ── Demo video ───────────────────────────────────────── */
+.videoSection { padding: 4rem 0; border-top: 1px solid var(--border); }
+.videoWrap {
+  position: relative; width: 100%; max-width: 720px; margin: 0 auto;
+  aspect-ratio: 16 / 9; border-radius: var(--radius-lg); overflow: hidden;
+  border: 1px solid var(--border); background: var(--surface2);
+}
+.videoWrap iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+
 /* ── Features ─────────────────────────────────────────── */
 .features { padding: 4rem 0; border-top: 1px solid var(--border); }
 .featureGrid {
@@ -210,39 +219,26 @@
 .upiAppLink:hover { border-color: var(--accent); }
 .divider { height: 1px; background: var(--border); }
 
-/* ── Screenshot upload ────────────────────────────────── */
-.screenshotSection { display: flex; flex-direction: column; gap: 0.6rem; }
+/* ── UTR input ────────────────────────────────────────── */
+.utrSection { display: flex; flex-direction: column; gap: 0.45rem; }
 
-.screenshotLabel {
+.utrLabel {
   font-family: var(--font-mono); font-size: 0.72rem;
   color: var(--text-muted); letter-spacing: 0.04em;
 }
 
-.screenshotDrop {
-  display: block; cursor: pointer;
-  border: 2px dashed var(--border); border-radius: var(--radius-lg);
-  transition: border-color 0.15s;
-  overflow: hidden;
+.utrInput {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  color: var(--text); font-family: var(--font-mono); font-size: 1.1rem;
+  letter-spacing: 0.08em; padding: 0.7rem 1rem; outline: none;
+  transition: border-color 0.15s; width: 100%; box-sizing: border-box;
 }
-.screenshotDrop:hover { border-color: var(--accent-border); }
+.utrInput:focus { border-color: var(--accent-border); }
+.utrInput::placeholder { color: var(--text-dim); font-size: 0.9rem; letter-spacing: 0.02em; }
 
-.screenshotPlaceholder {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 0.4rem; padding: 2rem 1rem; color: var(--text-dim);
-  font-family: var(--font-mono); font-size: 0.78rem;
-}
-.screenshotIcon { font-size: 1.8rem; }
-.screenshotHint { font-size: 0.66rem; opacity: 0.7; }
-
-.screenshotPreview {
-  display: block; width: 100%; max-height: 260px;
-  object-fit: contain; background: var(--surface2);
-}
-
-.fileInputHidden { display: none; }
-
-.screenshotReady {
-  font-family: var(--font-mono); font-size: 0.72rem; color: #4ade80;
+.utrHint {
+  font-family: var(--font-mono); font-size: 0.65rem;
+  color: var(--text-dim); line-height: 1.5;
 }
 
 /* ── WhatsApp button ──────────────────────────────────── */
@@ -257,6 +253,41 @@
 .whatsappBtn:disabled { background: #1a4a2e; color: #4a7a5a; cursor: not-allowed; }
 .whatsappNote {
   font-family: var(--font-mono); font-size: 0.66rem; color: var(--text-dim); text-align: center;
+}
+
+/* ── Recommended gear ─────────────────────────────────── */
+.affiliateSection { padding: 4rem 0; border-top: 1px solid var(--border); }
+.affiliateIntro {
+  text-align: center; color: var(--text-muted); font-size: 0.9rem;
+  margin: -1.25rem auto 2rem; max-width: 480px;
+}
+.affiliateGrid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;
+}
+.affiliateCard {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); overflow: hidden; text-decoration: none;
+  display: flex; flex-direction: column; transition: border-color 0.2s, transform 0.1s;
+}
+.affiliateCard:hover { border-color: var(--accent-border); transform: translateY(-2px); }
+.affiliateImg {
+  width: 100%; aspect-ratio: 1 / 1; object-fit: contain;
+  background: #fff; padding: 1rem; box-sizing: border-box;
+}
+.affiliateBody { padding: 1rem 1.25rem 1.25rem; display: flex; flex-direction: column; gap: 0.35rem; }
+.affiliateTitle {
+  font-family: var(--font-display); font-size: 0.95rem;
+  font-weight: 600; color: var(--text); line-height: 1.35;
+}
+.affiliateDesc { font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; }
+.affiliatePrice {
+  font-family: var(--font-mono); font-size: 0.85rem;
+  color: var(--accent); font-weight: 700; margin-top: 0.2rem;
+}
+.affiliateCta { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-dim); }
+.affiliateDisclosure {
+  text-align: center; font-family: var(--font-mono); font-size: 0.68rem;
+  color: var(--text-dim); margin-top: 1.75rem;
 }
 
 /* ── Footer ───────────────────────────────────────────── */
