@@ -254,10 +254,9 @@ export function LandingPage({ onActivated }: LandingPageProps) {
           <h2 className={styles.sectionTitle}>Everything you need, nothing you don't</h2>
           <div className={styles.featureGrid}>
             {[
-              { icon: '🔒', title: '100% Private',      body: 'PDF generation happens entirely in your browser. Patient names, tests, and ward numbers never touch a server.' },
-              { icon: '⚡', title: 'Bulk Entry',         body: 'Add a full ward in minutes. Set the session once, then zip through each patient with auto-test-selection.' },
-              { icon: '📄', title: 'One PDF, All Pages', body: 'Every patient gets their own page. Download them all as a single, print-ready PDF with one click.' },
-              { icon: '🏥', title: 'Ward & OPD',         body: 'Toggle between inpatient ward numbers and OPD. The form label switches automatically on the PDF.' },
+              { icon: '🔒', title: '100% Patient Data Privacy', body: 'PDF generation happens entirely in your browser. Patient names, tests, and ward numbers never touch a server.' },
+              { icon: '⚡', title: 'Bulk Entry',                 body: 'Add a full ward in minutes with auto-test-selection. Tap "T" next to tomorrow\'s test to prep it in advance.' },
+              { icon: '🏷️', title: 'Lab-Tested Labels',          body: 'Personally tested and accepted by labs without any issues.' },
             ].map(f => (
               <div key={f.title} className={styles.featureCard}>
                 <span className={styles.featureIcon}>{f.icon}</span>
