@@ -44,7 +44,7 @@ export function PatientQueue({ patients, onRemove, totalPages }: Props) {
                 <div className={styles.nameRow}>
                   <span className={styles.patientName}>{patient.name}</span>
                   <span className={styles.patientMeta}>
-                    {patient.age}y · {patient.gender}
+                    {patient.age != null ? `${patient.age}y` : '-'} · {patient.gender || '-'}
                     {patient.inpatientNo && ` · IP#${patient.inpatientNo}`}
                   </span>
                 </div>

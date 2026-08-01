@@ -6,8 +6,8 @@ import styles from './PatientForm.module.css'
 interface Props {
   onAdd: (
     name: string,
-    age: number,
-    gender: 'Male' | 'Female',
+    age: number | null,
+    gender: 'Male' | 'Female' | '',
     inpatientNo: string,
     vacutainerLabel: boolean,
     tests: TestId[],
@@ -28,7 +28,7 @@ export function PatientForm({ onAdd, disabled }: Props) {
   const [tomorrowTests, setTomorrowTests] = useState<Set<TestId>>(new Set())
   const [additionalTests, setAdditionalTests] = useState<string[]>([])
   const [additionalTestsTomorrow, setAdditionalTestsTomorrow] = useState<boolean[]>([])
-  const [errors, setErrors] = useState<{ name?: string; age?: string; gender?: string; inpatientNo?: string; tests?: string }>({})
+  const [errors, setErrors] = useState<{ name?: string; age?: string; inpatientNo?: string; tests?: string }>({})
 
   const toggleTest = (id: TestId) => {
     setSelected((prev) => {
@@ -86,9 +86,8 @@ export function PatientForm({ onAdd, disabled }: Props) {
     const trimmedName = name.trim()
     if (!trimmedName) errs.name = 'Name is required'
     else if (trimmedName.length > 11) errs.name = 'Name must be 11 characters or fewer'
-    const ageNum = parseInt(age, 10)
-    if (!age || isNaN(ageNum) || ageNum <= 0 || ageNum > 150) errs.age = 'Enter a valid age'
-    if (!gender) errs.gender = 'Gender is required'
+    const ageNum = age.trim() ? parseInt(age, 10) : null
+    if (age.trim() && (isNaN(ageNum as number) || (ageNum as number) <= 0 || (ageNum as number) > 150)) errs.age = 'Enter a valid age'
     if (inpatientNo && !/^\d{1,9}$/.test(inpatientNo)) errs.inpatientNo = 'Up to 9 digits only'
     const hasAdditionalTests = additionalTests.some((t) => t.trim())
     if (selected.size === 0 && !hasAdditionalTests) errs.tests = 'Select at least one test or enter additional tests'
@@ -97,7 +96,7 @@ export function PatientForm({ onAdd, disabled }: Props) {
     onAdd(
       trimmedName,
       ageNum,
-      gender as 'Male' | 'Female',
+      gender,
       inpatientNo,
       vacutainerLabel,
       Array.from(selected),
@@ -153,7 +152,7 @@ export function PatientForm({ onAdd, disabled }: Props) {
       <div className={styles.triRow}>
         <div className={styles.subField}>
           <label htmlFor="patient-age" className={styles.label}>
-            Age <span className={styles.required}>*</span>
+            Age
           </label>
           <input
             id="patient-age"
@@ -172,20 +171,19 @@ export function PatientForm({ onAdd, disabled }: Props) {
 
         <div className={styles.subField}>
           <label htmlFor="patient-gender" className={styles.label}>
-            Gender <span className={styles.required}>*</span>
+            Gender
           </label>
           <select
             id="patient-gender"
-            className={`${styles.select} ${errors.gender ? styles.inputError : ''}`}
+            className={styles.select}
             value={gender}
-            onChange={(e) => { setGender(e.target.value as 'Male' | 'Female' | ''); setErrors((er) => ({ ...er, gender: undefined })) }}
+            onChange={(e) => setGender(e.target.value as 'Male' | 'Female' | '')}
             disabled={disabled}
           >
             <option value="">Select…</option>
             <option value="Male">Male</option>
             <option value="Female">Female</option>
           </select>
-          {errors.gender && <span className={styles.errorMsg} role="alert">{errors.gender}</span>}
         </div>
 
         <div className={styles.subField}>

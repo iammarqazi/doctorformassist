@@ -10,8 +10,8 @@ export function usePatientQueue() {
   const addPatient = useCallback(
     (
       name: string,
-      age: number,
-      gender: 'Male' | 'Female',
+      age: number | null,
+      gender: 'Male' | 'Female' | '',
       inpatientNo: string,
       vacutainerLabel: boolean,
       tests: TestId[],

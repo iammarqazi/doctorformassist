@@ -32,8 +32,8 @@ export interface SessionData {
 export interface PatientEntry {
   id: string
   name: string
-  age: number
-  gender: 'Male' | 'Female'
+  age: number | null
+  gender: 'Male' | 'Female' | ''
   inpatientNo: string
   vacutainerLabel: boolean
   tests: TestId[]

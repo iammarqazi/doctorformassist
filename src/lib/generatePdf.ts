@@ -84,7 +84,7 @@ export async function generateLabPdf(session: SessionData, patients: PatientEntr
   const wardUnit        = session.locationType === 'OPD' ? `OPD ${session.ward}/ ${session.unit}` : `Ward ${session.ward}/ ${session.unit}`
 
   for (const patient of patients) {
-    const agGender  = `${patient.age}/ ${patient.gender.toUpperCase()}`
+    const agGender  = `${patient.age ?? '-'}/ ${patient.gender ? patient.gender.toUpperCase() : '-'}`
     const patName   = patient.name.toUpperCase()
     const ipNo      = patient.inpatientNo ?? ''
     const duplicate = patient.vacutainerLabel
