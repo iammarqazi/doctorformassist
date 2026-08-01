@@ -7,7 +7,7 @@ const WA_NUM = import.meta.env.VITE_WHATSAPP || '919326281685'
 const AMOUNT = 365
 
 // Temporary demo video — replace with the real "how to use" video ID
-const DEMO_VIDEO_ID = 'HUqAfZB3yUk'
+const DEMO_VIDEO_ID = 'wJ7WKoObqWY'
 
 const upiLink = `upi://pay?pa=${UPI_ID}&pn=DoctorFormAssist&am=${AMOUNT}&cu=INR&tn=DoctorFormAssist+Annual`
 
